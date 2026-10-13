@@ -1,0 +1,17 @@
+{
+  "result": "PASS",
+  "checked_at": "2026-10-05T20:06:42.306499+00:00",
+  "connection_transport_checks": 229,
+  "existing_transport_checks": 29,
+  "scope": "Mock fetch tests; no network/production calls. Invalid save-body API422 surfaced; backend validation separately tested.",
+  "sha256": {
+    "fleetbase/asr/source-sync/test-connection-transport.cjs": "44d4e780f2a18bc4856952d7c31b25cb63cb0943ea1853e6bc23d81336bd1c23",
+    "fleetbase/asr/source-sync/test-transport.cjs": "a9dfd121222e4fbe5dc962823517567ce5694a5ad10833522657f662b5ce785f",
+    "fleetbase/asr/source-sync/mapa-source-native.js": "9a82803fd5d2267fd4c94a2aa3d7a906310a5172eebf0ff775f6d172c6266788",
+    "fleetbase/console/public/mapa-source-native.js": "9a82803fd5d2267fd4c94a2aa3d7a906310a5172eebf0ff775f6d172c6266788",
+    "fleetbase/asr/source-sync/test-connection-view.cjs": "8f3496a025c7d919108099d8790b7039535e8adc65cc76f48445070480393fe7",
+    "fleetbase/console/public/mapa-connection-view.js": "9db84bc6d6bc44b51ac75c28034569d6670123ed91b0542bbf846d7dfa5c2505"
+  },
+  "connection_view_dom_checks": 23,
+  "dom_scope": "Minimal DOM behavior harness; covers initial retry, concurrent clicks, failed pagination retry, successful-only page advancement, fixed search filter, closed-view late response, inactive/stale journal messages; no browser visual or production checks."
+}

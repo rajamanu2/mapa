@@ -1,0 +1,172 @@
+name: mapa-cloud
+
+x-api: &api
+  image: mapa-cloud-api:pilot
+  build:
+    context: .
+    dockerfile: Dockerfile.api
+    args:
+      MAPA_API_BASE_IMAGE: ${MAPA_API_BASE_IMAGE:-mapa-cloud-api:transfer}
+  restart: unless-stopped
+  env_file: ${MAPA_ENV_FILE:-.env}
+  environment:
+    APP_NAME: MAPA
+    APP_ENV: production
+    APP_DEBUG: "false"
+    LOG_LEVEL: warning
+    APP_URL: ${MAPA_PUBLIC_ORIGIN:?Set the public HTTPS origin}/api
+    CONSOLE_HOST: ${MAPA_PUBLIC_ORIGIN}
+    SESSION_DOMAIN: ${MAPA_PUBLIC_HOST:?Set the public hostname}
+    SESSION_SECURE_COOKIE: "true"
+    SESSION_DRIVER: redis
+    DB_HOST: database
+    DB_DATABASE: fleetbase
+    DB_USERNAME: mapa
+    DB_PASSWORD: ${MYSQL_PASSWORD:?Generate the cloud database password}
+    DATABASE_URL: mysql://mapa:${MYSQL_PASSWORD}@database/fleetbase
+    REDIS_HOST: cache
+    REDIS_URL: tcp://cache
+    CACHE_URL: tcp://cache
+    CACHE_DRIVER: redis
+    QUEUE_CONNECTION: redis
+    BROADCAST_DRIVER: socketcluster
+    SOCKETCLUSTER_HOST: socket
+    SOCKETCLUSTER_PORT: 8000
+    MAIL_MAILER: log
+    MAIL_FROM_ADDRESS: demo@example.invalid
+    MAIL_FROM_NAME: MAPA
+    REGISTRY_PREINSTALLED_EXTENSIONS: "true"
+    MAPA_VOICE_LIVE_ENABLED: "false"
+  volumes:
+    - uploads:/fleetbase/api/storage/app
+  networks: [application, data]
+  depends_on:
+    database:
+      condition: service_healthy
+    cache:
+      condition: service_healthy
+  logging: &logs
+    driver: json-file
+    options: {max-size: "5m", max-file: "3"}
+
+services:
+  database:
+    image: mysql:8.0-oracle
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Generate the cloud root password}
+      MYSQL_DATABASE: fleetbase
+      MYSQL_USER: mapa
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes: [mysql:/var/lib/mysql]
+    networks: [data]
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD="$$MYSQL_ROOT_PASSWORD" mysqladmin ping -h localhost -uroot --silent']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    logging: *logs
+  cache:
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, "yes"]
+    restart: unless-stopped
+    volumes: [redis:/data]
+    networks: [data]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    logging: *logs
+  application:
+    <<: *api
+    command: [php, artisan, "octane:frankenphp", "--workers=2", "--max-requests=500", "--port=8000", "--host=0.0.0.0"]
+  queue:
+    <<: *api
+    command: [php, artisan, "queue:work", "--sleep=3", "--tries=3", "--timeout=60"]
+    healthcheck:
+      test: [CMD, php, -r, "exit(str_contains(file_get_contents('/proc/1/cmdline'), 'queue:work') ? 0 : 1);"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  scheduler:
+    <<: *api
+    command: [go-crond, --verbose, "root:./crontab"]
+    healthcheck:
+      test: [CMD, php, -r, "exit(str_contains(file_get_contents('/proc/1/cmdline'), 'go-crond') ? 0 : 1);"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  socket:
+    # Keep the existing broadcaster private until subscription authorization is implemented.
+    image: socketcluster/socketcluster:v17.4.0
+    restart: unless-stopped
+    environment:
+      ENV: prod
+      SOCKETCLUSTER_OPTIONS: '{"origins":["${MAPA_PUBLIC_HOST}:443","${MAPA_PUBLIC_HOST}"]}'
+    networks: [application]
+    logging: *logs
+  voice-bridge:
+    image: ${MAPA_VOICE_IMAGE:-mapa-cloud-voice-bridge:transfer}
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8789
+      QUEUE_DB: /data/voice-journal.sqlite
+      MAPA_API_ORIGIN: http://application:8000
+      MAPA_ALLOW_INTERNAL_HTTP: "true"
+      MAPA_VOICE_LIVE_ENABLED: "false"
+      MAPA_VOICE_BRIDGE_SECRET: ${MAPA_VOICE_BRIDGE_SECRET}
+      EXOTEL_ACCOUNT_SID: ${MAPA_EXOTEL_ACCOUNT_SID:-}
+      STREAM_USER: ${MAPA_VOICE_STREAM_USER:-}
+      STREAM_PASSWORD: ${MAPA_VOICE_STREAM_PASSWORD:-}
+      SARVAM_API_KEY: ${SARVAM_API_KEY:-}
+      MAPA_VOICE_PUBLIC_WSS: ""
+      MAPA_VOICE_HUMAN_FALLBACK_CONFIGURED: "false"
+      MAPA_VOICE_DEFAULT_LANGUAGE: ${MAPA_VOICE_DEFAULT_LANGUAGE:-en}
+    volumes: [voice_journal:/data]
+    networks: [application]
+    depends_on: [application]
+    logging: *logs
+  gateway:
+    image: nginx:1.31.6-alpine
+    restart: unless-stopped
+    environment:
+      MAPA_PUBLIC_HOST: ${MAPA_PUBLIC_HOST}
+      NGINX_ENVSUBST_FILTER: ^MAPA_PUBLIC_HOST$$
+    volumes:
+      - ./gateway.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./proxy.conf:/etc/nginx/mapa-proxy.conf:ro
+      - ./cloud-console:/usr/share/nginx/html:ro
+    networks: [front, application]
+    depends_on: [application]
+    logging: *logs
+  tunnel:
+    image: cloudflare/cloudflared:2026.9.1
+    user: "0:0"
+    profiles: [public]
+    command: [tunnel, --no-autoupdate, --protocol, quic, run, --token-file, /run/secrets/tunnel_token]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    pids_limit: 64
+    mem_limit: 256m
+    security_opt: [no-new-privileges:true]
+    secrets: [tunnel_token]
+    networks: [front]
+    depends_on: [gateway]
+    logging: *logs
+
+secrets:
+  tunnel_token:
+    file: ./private/tunnel-token
+networks:
+  front: {}
+  application: {}
+  data:
+    internal: true
+volumes:
+  mysql: {}
+  redis: {}
+  uploads: {}
+  voice_journal: {}

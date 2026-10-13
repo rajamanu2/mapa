@@ -1,0 +1,43 @@
+plugins { id 'com.android.application' version '8.9.2' }
+
+// Private operator-supplied Android Firebase config; never use a server service-account JSON here.
+def configPath = System.getenv('MAPA_GOOGLE_SERVICES_FILE')
+if (!configPath || !file(configPath).isFile()) throw new GradleException('Set MAPA_GOOGLE_SERVICES_FILE to the Android google-services.json file.')
+def firebaseConfig = new groovy.json.JsonSlurper().parse(file(configPath))
+if (firebaseConfig.type == 'service_account') throw new GradleException('Server service-account credentials must NEVER be packaged in an APK.')
+def firebaseClient = firebaseConfig.client.find { it.client_info.android_client_info.package_name == 'in.asr.ambulance' }
+if (!firebaseClient || !firebaseConfig.project_info.project_id || !firebaseConfig.project_info.project_number
+    || !firebaseClient.client_info.mobilesdk_app_id || !firebaseClient.api_key[0]?.current_key) throw new GradleException('Firebase config must contain the in.asr.ambulance Android app.')
+def nativeFiles = ['CompletionEvidence.java','EnrollmentState.java','NativeEnrollment.java','NativePhoto.java','NativeAlertPolicy.java','NativeDispatchOffers.java','NativeAlerts.java','NavigationActivity.java','RouteData.java','RouteClient.java','NativeConnection.java','NativeProtocol.java','NativeUi.java','NativeTravel.java','NativeGpsState.java','NativeApi.java',
+  'NativeHospitalPolicy.java','NativeMainActivity.java','NativeDutyService.java','NativeRecoveryReceiver.java','NativeOutbox.java','ServerAddress.java','PrivateStore.java',
+  'ActionQueue.java','TripMap.java','PhotoProvider.java','NativePush.java','NativePushPolicy.java','NativeFcmClient.java','NativeMessagingService.java']
+// Strip only the old manifest package attribute for modern AGP; canonical source manifest stays untouched.
+def manifestFile = layout.buildDirectory.file('generated/mapa/AndroidManifest.xml')
+tasks.register('prepareMapaManifest') { inputs.file('../AndroidManifest.xml'); outputs.file(manifestFile); doLast {
+    def target = manifestFile.get().asFile; target.parentFile.mkdirs()
+    target.text = file('../AndroidManifest.xml').getText('UTF-8').replaceAll(/\s+package="in\.asr\.ambulance"/, '')
+} }
+android {
+    namespace 'in.asr.ambulance'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'in.asr.ambulance'; minSdk 26; targetSdk 35
+        // Root build owns release versioning; read the reconciled native manifest.
+        def manifest = new XmlSlurper(false,false).parse(file('../AndroidManifest.xml'))
+        versionCode Integer.parseInt(manifest.attributes()['android:versionCode'])
+        versionName manifest.attributes()['android:versionName']
+        resValue 'string', 'google_app_id', firebaseClient.client_info.mobilesdk_app_id
+        resValue 'string', 'gcm_defaultSenderId', firebaseConfig.project_info.project_number
+        resValue 'string', 'project_id', firebaseConfig.project_info.project_id
+        resValue 'string', 'google_api_key', firebaseClient.api_key[0].current_key
+    }
+    sourceSets {
+        main { manifest.srcFile manifestFile; java.srcDirs = ['../src','src']; java.include nativeFiles.collect { '**/'+it }; res.srcDirs = ['../res'] }
+        release { manifest.srcFile 'AndroidManifest.xml' }
+        debug { manifest.srcFile 'AndroidManifest.xml' }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
+    buildTypes { release { minifyEnabled false } }
+}
+tasks.named('preBuild').configure { dependsOn 'prepareMapaManifest' }
+dependencies { implementation 'com.google.firebase:firebase-messaging:24.1.2' }

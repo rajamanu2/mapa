@@ -1,0 +1,76 @@
+PASS 1 body-bound dispatch signature accepted
+PASS 2 modified dispatch body rejected
+PASS 3 expired dispatch signature rejected
+PASS 4 reject malformed company_id
+PASS 5 reject malformed journey_id
+PASS 6 reject malformed ambulance_id
+PASS 7 reject malformed driver_id
+PASS 8 reject malformed expected_version
+PASS 9 reject malformed next_status
+PASS 10 reject malformed extra_grant
+PASS 11 private scope restricts company_id
+PASS 12 private scope restricts actions
+PASS 13 private scope restricts ambulance_ids
+PASS 14 private scope restricts driver_ids
+PASS 15 restricted dispatch writer reserves original resources
+PASS 16 same journey reservation retry returns existing ownership
+PASS 17 different journey cannot steal existing resource
+PASS 18 lookup confirms exact reserved resources
+PASS 19 lookup rejects spoofed reservation resources
+PASS 20 lookup authorizes actual stored reservation identities
+PASS 21 transition requires explicit next-state grant
+PASS 22 transition increments ownership version
+PASS 23 transition lost-response retry is stable
+PASS 24 explicit cancellation creates terminal ownership
+PASS 25 terminal transition exact retry remains readable
+PASS 26 terminal reservation cannot become a new grant
+PASS 27 lookup retains terminal history
+PASS 28 ownership operations leave source patient row unchanged
+PASS 29 restricted SQL denies SELECT [PDOException]
+PASS 30 restricted SQL denies UPDATE [PDOException]
+PASS 31 restricted SQL denies DELETE [PDOException]
+PASS 32 restricted SQL denies CREATE [PDOException]
+PASS 33 client verifies fixed-origin signed reservation
+PASS 34 client preserves exact journey and command envelope
+PASS 35 client rejects receipt mismatch company_id [App\MapaMobile\SourceDispatchUncertain]
+PASS 36 client rejects receipt mismatch journey_id [App\MapaMobile\SourceDispatchUncertain]
+PASS 37 client rejects receipt mismatch actor_id [App\MapaMobile\SourceDispatchUncertain]
+PASS 38 client rejects receipt mismatch driver_id [App\MapaMobile\SourceDispatchUncertain]
+PASS 39 client rejects receipt mismatch request_id [App\MapaMobile\SourceDispatchUncertain]
+PASS 40 client rejects receipt mismatch action [App\MapaMobile\SourceDispatchUncertain]
+PASS 41 client rejects receipt mismatch expected_version [App\MapaMobile\SourceDispatchUncertain]
+PASS 42 client rejects receipt mismatch next_status [App\MapaMobile\SourceDispatchUncertain]
+PASS 43 client rejects receipt mismatch contract [App\MapaMobile\SourceDispatchUncertain]
+PASS 44 client rejects malformed reservation status [App\MapaMobile\SourceDispatchUncertain]
+PASS 45 client rejects malformed reservation version [App\MapaMobile\SourceDispatchUncertain]
+PASS 46 client rejects malformed reservation created_at [App\MapaMobile\SourceDispatchUncertain]
+PASS 47 client rejects malformed reservation terminal_at [App\MapaMobile\SourceDispatchUncertain]
+PASS 48 client rejects malformed reservation extra [App\MapaMobile\SourceDispatchUncertain]
+PASS 49 verified rejection is distinguished from unknown outcome [App\MapaMobile\SourceDispatchRefused]
+PASS 50 unverified status remains unknown [App\MapaMobile\SourceDispatchUncertain]
+PASS 51 unknown outcome makes no auto-release or retry call
+PASS 52 unverified signature remains unknown [App\MapaMobile\SourceDispatchUncertain]
+PASS 53 unknown outcome makes no auto-release or retry call
+PASS 54 unverified type remains unknown [App\MapaMobile\SourceDispatchUncertain]
+PASS 55 unknown outcome makes no auto-release or retry call
+PASS 56 unverified body remains unknown [App\MapaMobile\SourceDispatchUncertain]
+PASS 57 unknown outcome makes no auto-release or retry call
+PASS 58 network failure preserves unknown ownership outcome [App\MapaMobile\SourceDispatchUncertain]
+PASS 59 client disabled for private config enabled [App\MapaMobile\SourceDispatchUnavailable]
+PASS 60 invalid client configuration does not reach transport
+PASS 61 client disabled for private config original_writers_coordinated [App\MapaMobile\SourceDispatchUnavailable]
+PASS 62 invalid client configuration does not reach transport
+PASS 63 client disabled for private config company_id [App\MapaMobile\SourceDispatchUnavailable]
+PASS 64 invalid client configuration does not reach transport
+PASS 65 client disabled for private config url [App\MapaMobile\SourceDispatchUnavailable]
+PASS 66 invalid client configuration does not reach transport
+PASS 67 client disabled for private config secret [App\MapaMobile\SourceDispatchUnavailable]
+PASS 68 invalid client configuration does not reach transport
+PASS 69 HTTP anonymous dispatch denied
+PASS 70 HTTP reserve passes commissioned schema and signed response
+PASS 71 HTTP receipt keeps native journey identity
+PASS 72 HTTP lookup is scoped and signed
+PASS 73 HTTP disabled without original writer coordination
+PASS 74 HTTP schema attestation failure never reports released ownership
+PASS 75 HTTP gate failures leave existing durable owner intact
+SOURCE DISPATCH PASS 75 checks

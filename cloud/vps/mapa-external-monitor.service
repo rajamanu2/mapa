@@ -1,0 +1,18 @@
+[Unit]
+Description=MAPA external availability and authentication boundary check
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+DynamicUser=yes
+ExecStart=/usr/bin/python3 /opt/mapa-monitor/uptime-check.py https://app.itda.asrhealth.in --compatibility-origin https://mapa-asr-health.pages.dev
+TimeoutStartSec=75
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+RestrictAddressFamilies=AF_INET AF_INET6
+
+# Install ONLY on an independent monitoring host. This unit logs failures;
+# connect the owner's chosen alerting system before claiming active monitoring.

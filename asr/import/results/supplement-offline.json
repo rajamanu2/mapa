@@ -1,0 +1,68 @@
+{
+  "checked_at": "2026-10-01T00:02:45.690258+00:00",
+  "state": "PASS",
+  "proof": "offline syntax and pure supplement policy only; native integration separate",
+  "production_writes": 0,
+  "source_hashes": {
+    "ImportPlan.php": "c18c206f8b3a4f68eb87167518c1ef93329b6865c7fe7931c6dcc3fdcbd2f15b",
+    "SupplementPlan.php": "ce92a7e712e56d810b109215b71cf74b1fafbc5eb0bbd8407f5377966b5edafa",
+    "SupplementApply.php": "f93fe3d8893a724c37fa2176a85d82ce4e638509a97e16c71badf7c60c3e6d5c",
+    "supplement-native.php": "907fa8c58d1d3b514e2781b3ffed29acd9a5d5270ae5ecaa514f21b7b682d7fe",
+    "supplement.py": "e2b55acabf4427133197a2573040721917dad50544912975141e0dbf70fe5938",
+    "stage-supplement.py": "51bdf94a9b90b79dddf890d8df795e1836b662a755ded0f3961e41c388ee2875",
+    "tests/supplement-policy.php": "3348e1c8dd3a961c1c217df0aede0af5bcd81666ad5ec1a7b1f162025409028d",
+    "tests/supplement-offline.py": "c1693a974d4f042a9349eb54329a3dbeb317d2e2715b13b57c2bcdafa335e4f3"
+  },
+  "reviewed_plan_sha256": "99add5b34de835d5b6c0417fd7d1796d472e1ff0fe00635670931e60cc7eb731",
+  "checks": [
+    {
+      "id": "lint-ImportPlan.php",
+      "pass": true,
+      "detail": "No syntax errors detected in /qa/import/ImportPlan.php"
+    },
+    {
+      "id": "lint-SupplementPlan.php",
+      "pass": true,
+      "detail": "No syntax errors detected in /qa/import/SupplementPlan.php"
+    },
+    {
+      "id": "lint-SupplementApply.php",
+      "pass": true,
+      "detail": "No syntax errors detected in /qa/import/SupplementApply.php"
+    },
+    {
+      "id": "lint-supplement-native.php",
+      "pass": true,
+      "detail": "No syntax errors detected in /qa/import/supplement-native.php"
+    },
+    {
+      "id": "lint-tests/supplement-policy.php",
+      "pass": true,
+      "detail": "No syntax errors detected in /qa/import/tests/supplement-policy.php"
+    },
+    {
+      "id": "pure-supplement-policy",
+      "pass": true,
+      "detail": "30 isolated supplemental policy checks passed."
+    },
+    {
+      "id": "exact-native-launcher-body-lint",
+      "pass": true,
+      "detail": "No syntax errors detected in Standard input code"
+    },
+    {
+      "id": "exact-offline-policy-body-lint",
+      "pass": true,
+      "detail": "No syntax errors detected in Standard input code"
+    },
+    {
+      "id": "exact-private-plan-pure-validation",
+      "pass": true,
+      "detail": "{\"contract\":\"asr-hospital-pin-supplement-policy-v1\",\"hospitals\":3,\"vehicle_links\":5}"
+    },
+    {
+      "id": "source-stability",
+      "pass": true
+    }
+  ]
+}

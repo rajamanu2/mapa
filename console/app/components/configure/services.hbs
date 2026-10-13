@@ -1,0 +1,152 @@
+<ContentPanel @title="AWS" @open={{true}} @wrapperClass="bordered-classic">
+    <InputGroup @name="AWS Access Key" @value={{this.awsKey}} disabled={{this.isLoading}} />
+    <InputGroup @name="AWS Access Secret" @value={{this.awsSecret}} disabled={{this.isLoading}} />
+    <InputGroup @name="AWS Region" @value={{this.awsRegion}} disabled={{this.isLoading}} />
+</ContentPanel>
+
+<ContentPanel @title="Google Maps" @open={{true}} @wrapperClass="bordered-classic">
+    <InputGroup @name="Google Maps API Key" @value={{this.googleMapsApiKey}} disabled={{this.isLoading}} />
+    <InputGroup @name="Google Maps Locale" @value={{this.googleMapsLocale}} disabled={{this.isLoading}} />
+</ContentPanel>
+
+<ContentPanel @title="SMS Providers" @open={{true}} @wrapperClass="bordered-classic">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+            <label class="form-label">Default Provider</label>
+            <select class="form-select form-select-sm w-full" data-test-sms-default-provider {{on "change" this.updateSmsDefaultProvider}}>
+                {{#each this.smsProviders as |provider|}}
+                    <option value={{provider.key}} selected={{eq this.normalizedSms.defaultProvider provider.key}}>{{provider.name}}</option>
+                {{/each}}
+            </select>
+        </div>
+        <div>
+            <label class="form-label">Configure Provider</label>
+            <select class="form-select form-select-sm w-full" data-test-sms-configure-provider {{on "change" this.selectSmsProvider}}>
+                {{#each this.smsProviders as |provider|}}
+                    <option value={{provider.key}} selected={{eq this.smsSelectedProvider provider.key}}>{{provider.name}}</option>
+                {{/each}}
+            </select>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        {{#if (eq this.smsSelectedProvider "twilio")}}
+            <InputGroup @name="Twilio SID" @value={{this.selectedSmsProviderConfig.sid}} {{on "input" (fn this.updateSmsProviderField "twilio" "sid")}} disabled={{this.isLoading}} />
+            <InputGroup @name="Twilio Token" @value={{this.selectedSmsProviderConfig.token}} {{on "input" (fn this.updateSmsProviderField "twilio" "token")}} disabled={{this.isLoading}} />
+            <InputGroup @name="Twilio From" @value={{this.selectedSmsProviderConfig.from}} {{on "input" (fn this.updateSmsProviderField "twilio" "from")}} disabled={{this.isLoading}} />
+        {{/if}}
+
+        {{#if (eq this.smsSelectedProvider "callpro")}}
+            <InputGroup @name="CallPro API Key" @value={{this.selectedSmsProviderConfig.api_key}} {{on "input" (fn this.updateSmsProviderField "callpro" "api_key")}} disabled={{this.isLoading}} />
+            <InputGroup @name="CallPro From" @value={{this.selectedSmsProviderConfig.from}} {{on "input" (fn this.updateSmsProviderField "callpro" "from")}} disabled={{this.isLoading}} />
+            <InputGroup @name="CallPro Base URL" @value={{this.selectedSmsProviderConfig.base_url}} {{on "input" (fn this.updateSmsProviderField "callpro" "base_url")}} disabled={{this.isLoading}} />
+        {{/if}}
+
+        {{#if (eq this.smsSelectedProvider "vonage")}}
+            <InputGroup @name="Vonage API Key" @value={{this.selectedSmsProviderConfig.api_key}} {{on "input" (fn this.updateSmsProviderField "vonage" "api_key")}} disabled={{this.isLoading}} />
+            <InputGroup @name="Vonage API Secret" @value={{this.selectedSmsProviderConfig.api_secret}} {{on "input" (fn this.updateSmsProviderField "vonage" "api_secret")}} disabled={{this.isLoading}} />
+            <InputGroup @name="Vonage From" @value={{this.selectedSmsProviderConfig.from}} {{on "input" (fn this.updateSmsProviderField "vonage" "from")}} disabled={{this.isLoading}} />
+        {{/if}}
+
+        {{#if (eq this.smsSelectedProvider "messagebird")}}
+            <InputGroup @name="MessageBird Access Key" @value={{this.selectedSmsProviderConfig.access_key}} {{on "input" (fn this.updateSmsProviderField "messagebird" "access_key")}} disabled={{this.isLoading}} />
+            <InputGroup @name="MessageBird Originator" @value={{this.selectedSmsProviderConfig.originator}} {{on "input" (fn this.updateSmsProviderField "messagebird" "originator")}} disabled={{this.isLoading}} />
+        {{/if}}
+
+        {{#if (eq this.smsSelectedProvider "aws_sns")}}
+            <InputGroup @name="AWS Access Key" @value={{this.selectedSmsProviderConfig.key}} {{on "input" (fn this.updateSmsProviderField "aws_sns" "key")}} disabled={{this.isLoading}} />
+            <InputGroup @name="AWS Secret" @value={{this.selectedSmsProviderConfig.secret}} {{on "input" (fn this.updateSmsProviderField "aws_sns" "secret")}} disabled={{this.isLoading}} />
+            <InputGroup @name="AWS Region" @value={{this.selectedSmsProviderConfig.region}} {{on "input" (fn this.updateSmsProviderField "aws_sns" "region")}} disabled={{this.isLoading}} />
+            <InputGroup @name="SNS Sender ID" @value={{this.selectedSmsProviderConfig.sender_id}} {{on "input" (fn this.updateSmsProviderField "aws_sns" "sender_id")}} disabled={{this.isLoading}} />
+            <InputGroup @name="SNS SMS Type" @value={{this.selectedSmsProviderConfig.sms_type}} {{on "input" (fn this.updateSmsProviderField "aws_sns" "sms_type")}} disabled={{this.isLoading}} />
+        {{/if}}
+
+        {{#if (eq this.smsSelectedProvider "smpp")}}
+            <InputGroup @name="SMPP Host" @value={{this.selectedSmsProviderConfig.host}} {{on "input" (fn this.updateSmsProviderField "smpp" "host")}} disabled={{this.isLoading}} />
+            <InputGroup @name="SMPP Port" @value={{this.selectedSmsProviderConfig.port}} {{on "input" (fn this.updateSmsProviderField "smpp" "port")}} disabled={{this.isLoading}} />
+            <InputGroup @name="SMPP System ID" @value={{this.selectedSmsProviderConfig.system_id}} {{on "input" (fn this.updateSmsProviderField "smpp" "system_id")}} disabled={{this.isLoading}} />
+            <InputGroup @name="SMPP Password" @value={{this.selectedSmsProviderConfig.password}} {{on "input" (fn this.updateSmsProviderField "smpp" "password")}} disabled={{this.isLoading}} />
+            <InputGroup @name="SMPP Source Address" @value={{this.selectedSmsProviderConfig.source_addr}} {{on "input" (fn this.updateSmsProviderField "smpp" "source_addr")}} disabled={{this.isLoading}} />
+            <InputGroup @name="SMPP Bind Type" @value={{this.selectedSmsProviderConfig.bind_type}} {{on "input" (fn this.updateSmsProviderField "smpp" "bind_type")}} disabled={{this.isLoading}} />
+            <label class="flex flex-row items-center text-sm my-2">
+                <Input @type="checkbox" @checked={{this.selectedSmsProviderConfig.tls}} {{on "change" (fn this.updateSmsProviderChecked "smpp" "tls")}} class="fleetbase-checkbox form-checkbox" />
+                <span class="ml-2">Use TLS</span>
+            </label>
+            {{!-- <Checkbox @label="Use TLS" @value={{this.selectedSmsProviderConfig.tls}} @onToggle={{fn this.updateSmsProviderChecked "smpp" "tls"}} @wrapperClass="my-2" /> --}}
+            <button type="button" class="text-xs px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 flex items-center w-full" data-test-smpp-advanced-toggle {{on "click" this.toggleSmppAdvancedSettings}}>
+                <FaIcon @icon="sliders" class="mr-1" /> <span>{{if this.isSmppAdvancedSettingsVisible "Hide Advanced Settings" "Advanced Settings"}}</span>
+            </button>
+            {{#if this.isSmppAdvancedSettingsVisible}}
+                <div class="mt-1 mb-2 rounded-md border border-gray-200 dark:border-gray-700 px-2 py-2">
+                    <div class="grid grid-cols-2 gap-2" data-test-smpp-advanced-settings>
+                        <InputGroup @name="Bind TON" @value={{this.selectedSmsProviderConfig.addr_ton}} data-test-smpp-addr-ton {{on "input" (fn this.updateSmsProviderNumberField "smpp" "addr_ton")}} disabled={{this.isLoading}} />
+                        <InputGroup @name="Bind NPI" @value={{this.selectedSmsProviderConfig.addr_npi}} data-test-smpp-addr-npi {{on "input" (fn this.updateSmsProviderNumberField "smpp" "addr_npi")}} disabled={{this.isLoading}} />
+                        <InputGroup @name="Source TON" @value={{this.selectedSmsProviderConfig.source_addr_ton}} data-test-smpp-source-ton {{on "input" (fn this.updateSmsProviderNumberField "smpp" "source_addr_ton")}} disabled={{this.isLoading}} />
+                        <InputGroup @name="Source NPI" @value={{this.selectedSmsProviderConfig.source_addr_npi}} data-test-smpp-source-npi {{on "input" (fn this.updateSmsProviderNumberField "smpp" "source_addr_npi")}} disabled={{this.isLoading}} />
+                        <InputGroup @name="Destination TON" @value={{this.selectedSmsProviderConfig.dest_addr_ton}} data-test-smpp-dest-ton {{on "input" (fn this.updateSmsProviderNumberField "smpp" "dest_addr_ton")}} disabled={{this.isLoading}} />
+                        <InputGroup @name="Destination NPI" @value={{this.selectedSmsProviderConfig.dest_addr_npi}} data-test-smpp-dest-npi {{on "input" (fn this.updateSmsProviderNumberField "smpp" "dest_addr_npi")}} disabled={{this.isLoading}} />
+                        <InputGroup @name="Registered Delivery" @value={{this.selectedSmsProviderConfig.registered_delivery}} data-test-smpp-registered-delivery {{on "input" (fn this.updateSmsProviderNumberField "smpp" "registered_delivery")}} disabled={{this.isLoading}} />
+                        <InputGroup @name="Data Coding" @value={{this.selectedSmsProviderConfig.data_coding}} data-test-smpp-data-coding {{on "input" (fn this.updateSmsProviderNumberField "smpp" "data_coding")}} disabled={{this.isLoading}} />
+                    </div>
+                    <InputGroup @name="SMPP Service Type" @value={{this.selectedSmsProviderConfig.service_type}} data-test-smpp-service-type {{on "input" (fn this.updateSmsProviderField "smpp" "service_type")}} disabled={{this.isLoading}} />
+                    <InputGroup @name="SMPP Address Range" @value={{this.selectedSmsProviderConfig.address_range}} data-test-smpp-address-range {{on "input" (fn this.updateSmsProviderField "smpp" "address_range")}} disabled={{this.isLoading}} />
+                </div>
+            {{/if}}
+        {{/if}}
+
+        {{#if (eq this.smsSelectedProvider "custom_http")}}
+            <div>
+                <label class="form-label">Method</label>
+                <select class="form-select form-select-sm w-full" data-test-custom-http-method {{on "change" (fn this.updateSmsProviderField "custom_http" "method")}}>
+                    <option value="POST" selected={{eq (or this.selectedSmsProviderConfig.method "POST") "POST"}}>POST</option>
+                    <option value="GET" selected={{eq this.selectedSmsProviderConfig.method "GET"}}>GET</option>
+                </select>
+            </div>
+            <InputGroup @name="Gateway URL" @value={{this.selectedSmsProviderConfig.url}} {{on "input" (fn this.updateSmsProviderField "custom_http" "url")}} disabled={{this.isLoading}} />
+            <InputGroup @name="From" @value={{this.selectedSmsProviderConfig.from}} {{on "input" (fn this.updateSmsProviderField "custom_http" "from")}} disabled={{this.isLoading}} />
+            <InputGroup @name="Auth Header" @value={{this.selectedSmsProviderConfig.auth_header}} {{on "input" (fn this.updateSmsProviderField "custom_http" "auth_header")}} disabled={{this.isLoading}} />
+            <InputGroup @name="Auth Token" @value={{this.selectedSmsProviderConfig.auth_token}} {{on "input" (fn this.updateSmsProviderField "custom_http" "auth_token")}} disabled={{this.isLoading}} />
+            <label class="form-label">Headers JSON</label>
+            <textarea class="form-input w-full font-mono text-xs" rows="4" value={{this.customHttpHeadersText}} {{on "input" (fn this.updateSmsProviderJsonField "custom_http" "headers")}}></textarea>
+            <label class="form-label mt-3">Query Params JSON</label>
+            <textarea class="form-input w-full font-mono text-xs" rows="4" value={{this.customHttpQueryParamsText}} {{on "input" (fn this.updateSmsProviderJsonField "custom_http" "query_params")}} data-test-custom-http-query-params></textarea>
+            {{#if this.isCustomHttpPostMethod}}
+                <label class="form-label mt-3">Body Template JSON</label>
+                <textarea class="form-input w-full font-mono text-xs" rows="5" value={{this.customHttpBodyText}} {{on "input" (fn this.updateSmsProviderJsonField "custom_http" "body")}} data-test-custom-http-body></textarea>
+            {{/if}}
+        {{/if}}
+    </div>
+
+    {{#if this.smsTestResponse}}
+        <div class="flex flex-row items-center rounded-lg border {{if (eq this.smsTestResponse.status 'error') 'border-red-900 bg-red-800 text-red-100' 'border-green-900 bg-green-800 text-green-100'}} shadow-sm my-2 px-4 py-2">
+            <FaIcon @icon={{if (eq this.smsTestResponse.status 'error') 'triangle-exclamation' 'circle-check'}} class="mr-1.5 {{if (eq this.smsTestResponse.status 'error') 'text-red-200' 'text-green-200'}}" />
+            <span class="text-xs">{{this.smsTestResponse.message}}</span>
+        </div>
+    {{/if}}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+        <Input @value={{this.smsTestPhone}} @type="tel" placeholder="Send Test SMS Here" class="form-input form-input-sm" data-test-sms-test-phone />
+        <Input @value={{this.smsTestMessage}} @type="text" placeholder="Test Message" class="form-input form-input-sm" data-test-sms-test-message />
+    </div>
+    <Button @wrapperClass="mt-3" @icon="plug" @text="Test SMS Provider" @onClick={{perform this.testSmsProvider}} @isLoading={{this.testSmsProvider.isRunning}} @disabled={{not this.smsTestPhone}} data-test-sms-test-button />
+</ContentPanel>
+
+<ContentPanel @title="Sentry" @open={{true}} @wrapperClass="bordered-classic">
+    <InputGroup @name="Sentry DSN" @value={{this.sentryDsn}} disabled={{this.isLoading}} />
+    {{#if this.sentryTestResponse}}
+        <div class="flex flex-row items-center rounded-lg border {{if (eq this.sentryTestResponse.status 'error') 'border-red-900 bg-red-800 text-red-100' 'border-green-900 bg-green-800 text-green-100'}} shadow-sm my-2 px-4 py-2">
+            <FaIcon @icon={{if (eq this.sentryTestResponse.status 'error') 'triangle-exclamation' 'circle-check'}} class="mr-1.5 {{if (eq this.sentryTestResponse.status 'error') 'text-red-200' 'text-green-200'}}" />
+            <span class="text-xs">{{this.this.sentryTestResponse.message}}</span>
+        </div>
+    {{/if}}
+    <Button @wrapperClass="mt-3" @icon="plug" @text="Test Sentry Config" @onClick={{perform this.testSentry}} @isLoading={{this.testSentry.isRunning}} @disabled={{not this.sentryDsn}} />
+</ContentPanel>
+
+<ContentPanel @title="IP Info" @open={{true}} @wrapperClass="bordered-classic">
+    <InputGroup @name="IP Info API Key" @value={{this.ipinfoApiKey}} disabled={{this.isLoading}} />
+</ContentPanel>
+
+<Spacer @height="200px" />
+
+<EmberWormhole @to="next-view-section-subheader-actions">
+    <Button @type="primary" @size="sm" @icon="save" @text="Save Changes" @onClick={{perform this.save}} @disabled={{or this.save.isRunning this.loadConfigValues.isRunning}} @isLoading={{or this.save.isRunning this.loadConfigValues.isRunning}} />
+</EmberWormhole>

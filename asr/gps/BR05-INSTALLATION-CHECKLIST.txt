@@ -1,0 +1,54 @@
+ASR HEALTH — BR05 / GT06 INSTALLATION CHECKLIST
+Prepared 5 October 2026 (India time)
+
+BRING / SEND TO THE INSTALLER
+1. One BR05 tracker, its exact firmware/model information, supplier manual and
+   the supplier's verified commands for APN, server address, TCP port, reporting
+   interval and querying the current configuration. Do not guess SMS commands.
+2. Active 4G data SIM, network name, APN, and APN username/password if required.
+   Verify data balance and whether inbound SMS is needed for configuration.
+3. Tracker's 15-digit IMEI mapped to the correct ambulance registration.
+   Provide the vehicle/base and driver assignment separately. GPS alone does
+   not put an ambulance or crew on duty.
+4. Qualified installer, fused power/ground connection and ignition connection
+   if supported. Follow the BR05 manual's wiring and mounting instructions.
+5. An Android crew phone with internet, location permission, an approved crew
+   account and the matched pilot APK. Bring a caller phone to test the HTTPS
+   link, plus a receiving-hospital phone/account for the later hospital test.
+6. Supplier access to set a custom server, not just access to its tracking app.
+
+SERVER DETAILS — DO NOT PROGRAM UNTIL LISTENER IS CONFIRMED READY
+Existing VPS IPv4: 148.135.136.242
+Protocol: GT06 (confirmed by the owner/supplier; verify on the physical BR05)
+Planned receiver port: TCP 5023
+The current isolated local receiver is 127.0.0.1:5023. That address must NEVER
+be entered into an ambulance tracker. The public GPS receiver/bridge is not
+commissioned by the caller-browser release. Do not use website port 443 for
+raw GT06. Traccar lists GT06N with gt06 on port 5023:
+https://www.traccar.org/devices/
+
+SERVER WORK STILL REQUIRED BEFORE THE FIRST PHYSICAL CONNECTION
+- Deploy the pinned receiver with a persistent production database and backup.
+- Keep receiver administration private; publish only the reviewed GT06 TCP port.
+- Register the real IMEI and actual ambulance in the receiver and MAPA; use a
+  separate private credential per device and an authenticated forwarding bridge.
+- Agree reporting intervals with supplier/operations (for example 10–15 seconds
+  while moving and a slower parked interval); verify power/data consumption.
+- Verify time is correctly interpreted as UTC, satellite fixes and buffering.
+- GT06/IMEI alone is not cryptographic authentication. Ask the supplier about
+  private APN/VPN or source restrictions and record the remaining spoofing risk.
+
+PHYSICAL ACCEPTANCE — ONE AMBULANCE FIRST
+1. Power on outdoors and confirm an actual satellite fix for the correct IMEI.
+2. Compare the vehicle's real location with the operator map and caller view.
+3. Drive a short supervised route; check timestamp freshness and crew/GPS ordering.
+4. Disconnect/reconnect data and power; verify stale warnings and recovery.
+5. Verify missing/invalid fixes never produce an invented live position.
+6. In an agreed supervised trip, verify caller consent/location, operator pickup
+   confirmation, crew acceptance, pickup and hospital leg, contact numbers and
+   completed/expired link closure. Do not dispatch a real emergency for testing.
+7. Expand to more ambulances only after the first device/phone test passes.
+
+Manual private-link sharing works without an SMS provider. Automated SMS needs
+a configured service or the separate Gammu gateway, compatible modem and SIM.
+No automatic message delivery, ETA or emergency-readiness guarantee is implied.

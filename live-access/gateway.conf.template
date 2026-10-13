@@ -1,0 +1,138 @@
+map $request_uri $mapa_api_uri {
+    ~^/api(?<api_remainder>/.*)$ $api_remainder;
+    default '';
+}
+map $http_upgrade $connection_upgrade { default upgrade; '' close; }
+limit_req_zone $http_cf_connecting_ip zone=live_login:10m rate=10r/m;
+server {
+    listen 8080 default_server;
+    server_name ${MAPA_PUBLIC_HOST};
+    set $mapa_public_host '${MAPA_PUBLIC_HOST}';
+    root /usr/share/nginx/html;
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    server_tokens off;
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/css application/javascript application/json image/svg+xml application/xml;
+    access_log off;
+    client_max_body_size 20m;
+    add_header Cache-Control 'no-store' always;
+    add_header X-Robots-Tag 'noindex, nofollow, noarchive' always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header Set-Cookie $mapa_socket_cookie always;
+    auth_request_set $mapa_socket_cookie $upstream_http_set_cookie;
+    location = /healthz { return 200 'MAPA ASR Health gateway ready\n'; }
+    error_page 401 = @mapa_json_401;
+    error_page 403 = @mapa_json_403;
+    error_page 429 = @mapa_json_429;
+    location = /404.html { try_files $uri =404; }
+    location @mapa_json_401 { default_type application/json; return 401 '{"errors":["Please sign in with your MAPA account."]}'; }
+    location @mapa_json_403 { default_type application/json; return 403 '{"errors":["Your account cannot perform this action. Owner and account security settings require the ASR Health owner."]}'; }
+    location @mapa_json_429 { default_type application/json; return 429 '{"errors":["Too many attempts. Please wait a minute and try again."]}'; }
+    location = /_mapa_access {
+        internal;
+        set $gate http://access:8790;
+        proxy_pass $gate/authorize;
+        proxy_method GET;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length '';
+        proxy_set_header Authorization $http_authorization;
+        proxy_set_header Cookie $http_cookie;
+        proxy_set_header X-Original-URI $request_uri;
+        proxy_set_header X-Original-Method $request_method;
+    }
+    location ~* ^/api/int/v1/(auth/sign-up|onboard/(?!should-onboard(?:/|$))) {
+        default_type application/json;
+        return 404 '{"errors":["This link opens the existing ASR Health workspace. Sign in or recover your administrator password; public account creation is disabled."]}';
+    }
+    location ~ ^/onboard(?:/|$) { return 302 https://$mapa_public_host/auth; }
+    location ~* ^/(api/)?mapa/voice/v1/bridge(?:/|$) { return 404; }
+    location ~* ^/(?:api/)?(?:_debugbar|_ignition|telescope|horizon)(?:/|$) { return 404; }
+    # Only intentionally released archives are served; no directory browsing.
+    autoindex off;
+    location = /mapa-source.zip { return 404; }
+    location = /downloads/MAPA-Console-Android-Source.zip { limit_except GET { deny all; } try_files $uri =404; }
+    location ~ ^/downloads/MAPA-Crew-(?:1\.12\.[012]-Install-Pack|Trial-1\.(?:10|11)\.0)\.zip$ { limit_except GET { deny all; } try_files $uri =404; }
+    # Deployed JavaScript is public by design. Debug maps and server/deployment files are not.
+    location ~* \.(?:map|php|phtml|py|ps1|sh|pem|key|p12|pfx|jks|keystore|dump|old|orig|save|swp|zip|tar|tgz|gz|7z|rar)(?:$|/) { return 404; }
+    location ~* ^/(?:vendor|node_modules|storage|config|tests|tmp|output|outputs)(?:/|$) { return 404; }
+    location ~ (^|/)\. { return 404; }
+    location ~* \.(?:env|sql|sqlite|sqlite3|log|bak)(?:$|/) { return 404; }
+    location ~* ^/(?:private|raw-console|backups)(?:/|$) { return 404; }
+    # Provider audio remains private until the phone provider is commissioned.
+    location ^~ /media { return 404; }
+    location = /api/int/v1/auth/login {
+        limit_req zone=live_login burst=5 nodelay;
+        limit_req_status 429;
+        set $api http://api:8000;
+        proxy_pass $api/int/v1/auth/login;
+        include /etc/nginx/mapa-proxy.conf;
+    }
+    # These are the native login bootstrap endpoints, not application data.
+    location = /api/int/v1/settings/branding {
+        limit_except GET { deny all; }
+        default_type application/json;
+        return 200 '{"brand":{"id":1,"uuid":1,"icon_url":"/mapa-icon.svg","logo_url":"/images/mapa-logo.svg","icon_uuid":null,"logo_uuid":null,"default_theme":"dark"}}';
+    }
+    location ~ ^/api/int/v1/(?:onboard/should-onboard|settings/branding|two-fa/check)$ {
+        limit_except GET { deny all; }
+        set $api http://api:8000;
+        proxy_pass $api$mapa_api_uri;
+        include /etc/nginx/mapa-proxy.conf;
+    }
+    location = /api/int/v1/auth/validate-verification {
+        limit_except GET { deny all; }
+        limit_req zone=live_login burst=5 nodelay;
+        limit_req_status 429;
+        set $api http://api:8000;
+        proxy_pass $api$mapa_api_uri;
+        include /etc/nginx/mapa-proxy.conf;
+    }
+    location ~ ^/api/int/v1/(?:two-fa/(?:validate|verify|resend|invalidate)|auth/(?:get-magic-reset-link|reset-password))$ {
+        limit_except POST { deny all; }
+        limit_req zone=live_login burst=5 nodelay;
+        limit_req_status 429;
+        set $api http://api:8000;
+        proxy_pass $api$mapa_api_uri;
+        include /etc/nginx/mapa-proxy.conf;
+    }
+    location /api/ {
+        auth_request /_mapa_access;
+        set $api http://api:8000;
+        proxy_pass $api$mapa_api_uri;
+        include /etc/nginx/mapa-proxy.conf;
+    }
+    # Mobile and Call Intake use their own company/role-bound native tokens.
+    location /mapa/mobile/v1/ {
+        set $api http://api:8000;
+        proxy_pass $api$request_uri;
+        include /etc/nginx/mapa-proxy.conf;
+    }
+    location /mapa/voice/v1/ {
+        set $api http://api:8000;
+        proxy_pass $api$request_uri;
+        include /etc/nginx/mapa-proxy.conf;
+    }
+    location /socketcluster/ {
+        auth_request /_mapa_access;
+        set $socket http://asr-fleetbase-pilot-socket-1:8000;
+        proxy_pass $socket$request_uri;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Origin http://localhost:4200;
+        proxy_set_header Host asr-fleetbase-pilot-socket-1:8000;
+        proxy_read_timeout 300s;
+        proxy_buffering off;
+    }
+    location = /fleetbase.config.json {
+        default_type application/json;
+        try_files $uri =404;
+    }
+    # Missing static files must return a real 404, not the SPA HTML with status 200.
+    location ~* \.(?:js|css|png|jpg|jpeg|webp|svg|ico|woff|woff2|xml|txt)$ { error_page 404 /404.html; try_files $uri =404; }
+    location / { try_files $uri $uri/ /index.html =404; }
+}

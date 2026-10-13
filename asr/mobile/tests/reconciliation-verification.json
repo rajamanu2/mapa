@@ -1,0 +1,40 @@
+{
+  "checked_at": "2026-10-05T20:02:47.181195+00:00",
+  "result": "PASS",
+  "native_mysql_checks": 42,
+  "scope": "Fresh disposable internal Docker network; tmpfs MySQL; no production rows, networks, ports or notifications. Migration000016 and committed private journal exercised.",
+  "covered": [
+    "Initial observations",
+    "Intermediate transfer generations",
+    "More than500 changes retained",
+    "Stable50row pagination",
+    "Read/review grants",
+    "Crosscompany ack404",
+    "Acknowledgement actor/time replay",
+    "Unpromoted journal ignored",
+    "Missing/tampered journal rejection",
+    "Transactional event batch rollback and cursor recovery",
+    "Capacity failure before state promotion",
+    "GET and POST controller contract/company envelope with explicit fake authentication boundary",
+    "Invalid acknowledgement JSON/body422 and invalidpage422",
+    "Authentication boundary denial propagated401"
+  ],
+  "limitations": [
+    "No live deployment",
+    "No real source transfer performed",
+    "No FCM/SMS/email sent",
+    "Controller auth reuses ConsoleEnrollmentService; existing full mobile auth suite remains separate",
+    "Journal requires deliberate archival before2048files or128MiB; no automatic deletion"
+  ],
+  "sha256": {
+    "fleetbase/asr/source-sync/SourceJournal.php": "9d549941b655139d390327ede6a7f7b117b16efe66d6de4a6c1c7f7f08a6d13a",
+    "fleetbase/asr/mobile/SourceJournal.php": "9d549941b655139d390327ede6a7f7b117b16efe66d6de4a6c1c7f7f08a6d13a",
+    "fleetbase/asr/mobile/SourceReconciliation.php": "28e0551e504611241df9e7e976b1c4eedb1d5acbddac3ad308ab8e6ac3981a44",
+    "fleetbase/asr/mobile/SourceReconciliationController.php": "4b3e46cf93c90569229a1f78274639908aadd4516849d35b587c45b4fa524cf0",
+    "fleetbase/asr/mobile/migrations/2026_10_06_000016_create_source_reconciliation.php": "cb8f97acf860f30fd25d850b9f8b1c9624a7f198337dbc8ff5174a39958a298f",
+    "fleetbase/asr/mobile/tests/run-reconciliation-native.py": "816de3dd64bb28bc088337ebb0f3db79b1c5a3b55bca58078c6404239f158872",
+    "fleetbase/asr/mobile/tests/reconciliation-native.php": "c7b672dcbb9cc2e9428da11e58b72916bbadf49a27529a3c1fcc66e59de8d288",
+    "fleetbase/asr/mobile/tests/reconciliation-cases.php": "ab3c61fcd523bb9c53a2be25206b0a76dcc6eb2b1fc2caab4da46b9d4ed6f2ae",
+    "fleetbase/asr/mobile/tests/reconciliation-native-result.txt": "5ece7d0f1156d62569f0f2755eb8b96a7de3759682c2a66abfd2f967d5d12c79"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "feature": "New Call destination eligibility and paginated selector",
+  "verified_at_ist": "2026-10-06T00:46:00.317341+05:30",
+  "scope": "local source; not deployed",
+  "ui_pure_checks": 176,
+  "javascript_syntax": "PASS",
+  "isolated_native_checks": 207,
+  "native_fk_checks": 1063,
+  "production_rows_written": 0,
+  "notifications_sent": 0,
+  "browser_visual_test": "not run for this patch",
+  "physical_phone_test": "not run",
+  "retired_pc_writers": "untouched",
+  "sha256": {
+    "fleetbase/asr/voice/VoiceService.php": "5eed0c2a526cc29f238533f16417f974b0e4dc89d9195a81edb4bbf59d07068e",
+    "fleetbase/console/public/mapa-voice.js": "1152d6d18b289a05b3d47645743225161d1856970181c9b01f5df51d89d05356",
+    "fleetbase/console/scripts/test-mapa-voice.cjs": "846ad5fd979032b399713855ff426fb618b1bcd14017b0fb26a5855f60838fe3",
+    "fleetbase/asr/voice/tests/native.php": "12d3c702c105376e1de35219ef0d8225d5d776de2d9726b5b5810570f2e57a5f",
+    "fleetbase/asr/voice/tests/destination-cases.php": "728df329502c83f96f5ca4b65d6413e02e6688c1a23386e92aec8088943b677a",
+    "fleetbase/asr/voice/tests/dedicated-native-result.txt": "883b17c25861e117abe1b2cc723168f87e271635dd77b337bef6c2b54f20ace4"
+  }
+}

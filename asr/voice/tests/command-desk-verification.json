@@ -1,0 +1,20 @@
+{
+  "checked_at": "2026-10-07T11:28:15.749214+00:00",
+  "result": "PASS",
+  "sqlite_checks": 39,
+  "php_syntax": "PASS both classes",
+  "runtime": "tmp/mapa-automatic-dispatch-tools/php/php.exe; pdo_sqlite and mbstring extensions; current local Illuminate vendor",
+  "database": "fresh SQLite :memory:, no app bootstrap/environment/database",
+  "limitations": [
+    "No production writes/deploy or calls/messages",
+    "No MySQL schema or HTTP authentication integration run",
+    "No live device validation",
+    "Fleet GPS markers/global dispatchability are not inferred"
+  ],
+  "sha256": {
+    "fleetbase/asr/voice/CommandDeskService.php": "db90453ae0a4acfa4d28f41509d5c0c5fca602d4ea7376d396e63796c394dd5a",
+    "fleetbase/asr/voice/CommandDeskPolicy.php": "b75ff5ef9f2de4878bb531fb0b210732cc5bf40ee5f1c25e10e05c99137cdf0d",
+    "fleetbase/asr/voice/tests/command-desk.php": "89c16ec224aa31ab41c130598ebd578a696cc63841a5366284af7594b849404d",
+    "fleetbase/asr/voice/COMMAND-DESK.md": "175e65a1117d8ed290c84761f25956cd3f902759d493c7a4e4bd760c568a3ebd"
+  }
+}

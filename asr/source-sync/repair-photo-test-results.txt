@@ -1,0 +1,17 @@
+PASS 1 multipart original repair init preserves redirect
+PASS 2 validated photo saved with original public URL folder
+PASS 3 same multipart retry creates neither duplicate repair nor file
+PASS 4 content change bound to request HMAC conflicts
+PASS 5 upload appends and preserves existing photos
+PASS 6 append retry never appends same photo twice
+PASS 7 disguised executable is rejected before moving files
+PASS 8 invalid CSRF cannot store files
+PASS 9 existing form edit permission still blocks multipart writes
+PASS 10 confirmed rollback removes only new transaction-owned photos
+PASS 11 rollback keeps prior photo references intact
+PASS 12 pre-commit interruption leaves immutable orphan but no database row
+PASS 13 retry reuses verified interrupted file and commits once
+PASS 14 lost response after commit replays without deleting committed photo
+PASS 15 repair initialization still allows no photos
+PASS 16 receipts expose neither filenames nor plain content digests
+SOURCE REPAIR PHOTOS PASS 16 checks

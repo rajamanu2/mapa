@@ -1,0 +1,28 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { parseFeed, parseInventory, grouped, scopeEqual, formatTime } = require('../public/mapa-asr-board-native.js');
+
+const row = (id, status) => ({ id, source_revision: 'a'.repeat(64), incident_number: `INC-${id}`, caller_name: 'DEMO Caller', pickup_address: 'DEMO Araku', priority: 'P1', status, created_at: new Date().toISOString() });
+const feed = { contract: 'mapa-asr-caller-feed-v1', company_id: 'DEMO-company', stale: false, truncated: false, generated_at: Math.floor(Date.now() / 1000), calls: [row(1, 'pending'), row(2, 'dispatched'), row(3, 'review')] };
+const result = parseFeed(feed, 'DEMO-company');
+assert.equal(result.calls.length, 3);
+assert.deepEqual(Object.fromEntries(Object.entries(grouped(result.calls)).map(([key, rows]) => [key, rows.length])), { 'Awaiting ASR action': 1, 'In progress at ASR': 1, 'Other recent calls': 1, 'Older unresolved ASR records': 0 });
+assert.equal(grouped([{ ...row(4, 'pending'), updated_at: '2026-07-28 10:41:23', created_at: '2026-07-28 10:41:23' }])['Older unresolved ASR records'].length, 1);
+assert.equal(formatTime('2026-07-28 10:41:23'), '28 Jul 2026, 10:41 AM IST');
+assert.equal(formatTime(Date.UTC(2026, 9, 9, 18, 35)), '10 Oct 2026, 12:05 AM IST');
+assert.throws(() => parseFeed(feed, 'other-company'));
+assert.throws(() => parseFeed({ ...feed, calls: [row(1, 'pending'), row(1, 'dispatched')] }, 'DEMO-company'));
+assert.throws(() => parseFeed({ ...feed, calls: [{ ...row(1, 'pending'), source_revision: 'bad' }] }, 'DEMO-company'));
+assert.equal(scopeEqual({ user: 'u', company: 'c', token: 'a' }, { user: 'u', company: 'c', token: 'b' }), false);
+const snapshot = parseInventory({ contract: 'mapa-asr-source-v3', company_id: 'DEMO-company', dataset: 'cad_incidents', received_at: 1791507600, stale: true, has_more: false, rows: [{ id: 4, incident_number: 'DEMO-4', from_phc_id: 11, status: 'pending' }, { id: 5, status: 'completed' }] }, 'DEMO-company');
+assert.equal(snapshot.calls.length, 1);
+assert.equal(snapshot.calls[0].caller_name, '');
+assert.equal(snapshot.source, 'source snapshot');
+assert.throws(() => parseInventory({ contract: 'mapa-asr-source-v3', company_id: 'wrong', dataset: 'cad_incidents', received_at: 1791507600, rows: [] }, 'DEMO-company'));
+const html = fs.readFileSync(path.join(__dirname, '../app/index.html'), 'utf8');
+assert.match(html, /mapa-asr-board-native\.js/);
+assert.match(html, /mapa-asr-board-native\.css/);
+const php = fs.readFileSync(path.join(__dirname, '../../asr/mobile/SourceCallStore.php'), 'utf8');
+for (const field of ['caller_name', 'pickup_address', 'priority', 'created_at', 'source_revision']) assert.match(php, new RegExp(field));
+console.log('MAPA ASR Board checks passed');

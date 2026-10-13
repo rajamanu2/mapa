@@ -1,0 +1,17 @@
+VoiceService frozen SHA256: 68c154db0c1adb9852397b4a1a5d39ad646c69ab8a26eb4f64dfb728ba6cc363
+Fresh internal QA network and disposable MySQL started; no production volumes or ports.
+Initialized disposable native schema from cached source; zero production connections.
+{
+    "ok": true,
+    "checks": 216,
+    "native_fk_checks": 1063,
+    "production_rows_written": 0,
+    "notifications_sent": 0
+}
+
+{"message":"MAPA crew alert could not be scheduled; control must verify crew acknowledgement.","context":{},"level":300,"level_name":"WARNING","channel":"testing","datetime":"2026-10-06T13:49:18.694274+00:00","extra":{}}
+{"message":"MAPA crew alert could not be scheduled; control must verify crew acknowledgement.","context":{},"level":300,"level_name":"WARNING","channel":"testing","datetime":"2026-10-06T13:49:20.803217+00:00","extra":{}}
+{"message":"MAPA crew alert could not be scheduled; control must verify crew acknowledgement.","context":{},"level":300,"level_name":"WARNING","channel":"testing","datetime":"2026-10-06T13:49:24.675613+00:00","extra":{}}
+
+Dedicated native test result: PASS
+Disposable QA resources removed; existing MAPA services untouched.

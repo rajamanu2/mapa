@@ -1,0 +1,22 @@
+{
+  "@fleetbase/fleetops-data/models/vehicle": {
+    "file": "assets/vendor.js",
+    "original_sha256": "2aba522898a6f6caecba1841d62dc9bc5a078aa7f3098e00c1f69731a59eceb1",
+    "patched_sha256": "da55e3b0aa53f343d0ba667836eae9e369b3543b170860db0bbcdb5b6edcf950"
+  },
+  "@fleetbase/fleetops-engine/components/positions-replay": {
+    "file": "engines-dist/@fleetbase/fleetops-engine/assets/engine.js",
+    "original_sha256": "118005088544b22214671aa624cc72de15e0a60deb0408abb265bf5de6a51104",
+    "patched_sha256": "2b25a49f5be0b6125329720e69e9ffa70e5693ce33ffbea989d184ba8183d82d"
+  },
+  "@fleetbase/fleetops-engine/components/map/leaflet-live-map": {
+    "file": "engines-dist/@fleetbase/fleetops-engine/assets/engine.js",
+    "original_sha256": "5685e6a3a7993ccb745b923be1095bbfd62edfce26ae7bf0253f8245aaeaed47",
+    "patched_sha256": "bcb98e1db4a8af7290e6dc3176a48a5e998115ff4f5922bcb33fa41122eb98fb"
+  },
+  "@fleetbase/fleetops-engine/services/vehicle-actions": {
+    "file": "engines-dist/@fleetbase/fleetops-engine/assets/engine.js",
+    "original_sha256": "bed3a837f4b972057ea4358d76d3e3db80bab1e62359bfeb77fde76aa717a017",
+    "patched_sha256": "76a7b842db6895a973d73f284d77cea24780a12564147e6df153fd389f619d7c"
+  }
+}

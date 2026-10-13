@@ -1,0 +1,10 @@
+# Install first-party intake assets without rebuilding unchanged Ember packages.
+ARG MAPA_CONSOLE_BASE=mapa-console-before-voice:2026-09-18
+FROM ${MAPA_CONSOLE_BASE}
+COPY public/mapa-voice.js public/mapa-voice.css public/mapa-layout-fixes.css public/mapa-source.zip /usr/share/nginx/html/
+COPY public/call-intake /usr/share/nginx/html/call-intake
+COPY public/mapa-map /usr/share/nginx/html/mapa-map
+COPY scripts/install-mapa-voice.sh /tmp/install-mapa-voice.sh
+COPY public/mapa-text-flow.js public/mapa-text-flow.css /usr/share/nginx/html/
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+RUN sh /tmp/install-mapa-voice.sh /usr/share/nginx/html /usr/share/nginx/html && nginx -t

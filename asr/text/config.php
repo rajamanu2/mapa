@@ -1,0 +1,21 @@
+<?php
+return [
+ 'enabled'=>env('MAPA_TEXT_ENABLED',false),
+ 'n8n_url'=>env('MAPA_TEXT_N8N_URL',''),
+ 'flow_key'=>env('MAPA_TEXT_FLOW_KEY',''),
+ 'meta_secret'=>env('MAPA_TEXT_META_APP_SECRET',''),
+ 'verify_token'=>env('MAPA_TEXT_VERIFY_TOKEN',''),
+ 'tracking_host'=>env('MAPA_TEXT_TRACKING_HOST','app.itda.asrhealth.in'),
+ 'default_sender'=>env('MAPA_TEXT_SENDER',''),
+ 'transport'=>env('MAPA_TEXT_TRANSPORT','waha'),
+ 'phone_id'=>env('MAPA_TEXT_PHONE_ID',''),
+ 'bridge_receipt_key'=>env('MAPA_TEXT_BRIDGE_RECEIPT_KEY',''),
+ 'waha_url'=>env('MAPA_TEXT_WAHA_URL','http://waha:3000'),
+ 'waha_api_key'=>env('MAPA_TEXT_WAHA_API_KEY',''),
+ 'qr_company_uuid'=>env('MAPA_TEXT_QR_COMPANY_UUID',env('MAPA_COMPANY_UUID','')),
+ 'oauth_introspection_url'=>env('MAPA_TEXT_OAUTH_INTROSPECTION_URL',''),
+ 'oauth_client_id'=>env('MAPA_TEXT_OAUTH_CLIENT_ID',''),
+ 'oauth_client_secret'=>env('MAPA_TEXT_OAUTH_CLIENT_SECRET',''),
+ 'oauth_allowed_client'=>env('MAPA_TEXT_OAUTH_ALLOWED_CLIENT',''),
+ 'oauth_audience'=>env('MAPA_TEXT_OAUTH_AUDIENCE','mapa-text'),
+];

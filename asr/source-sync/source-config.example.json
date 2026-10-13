@@ -1,0 +1,9 @@
+{
+  "enabled": false,
+  "contract": "mapa-asr-source-v1",
+  "source_timezone": "",
+  "dsn": "mysql:host=localhost;dbname=REPLACE_DATABASE;charset=utf8mb4",
+  "username": "REPLACE_SELECT_ONLY_ACCOUNT",
+  "password": "",
+  "secret": ""
+}

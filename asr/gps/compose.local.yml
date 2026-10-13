@@ -1,0 +1,35 @@
+name: mapa-gps-local
+services:
+  receiver:
+    image: traccar/traccar:6.16.0-alpine@sha256:03ebb7ed2b219d4f25c326873bd022f5062f80bcae622a9d9422846b51951eda
+    restart: "no"
+    ports:
+      - "127.0.0.1:5023:5023/tcp"
+      - "127.0.0.1:8083:8082/tcp"
+    volumes:
+      - ./private/traccar.xml:/opt/traccar/conf/traccar.xml:ro
+      - receiver-data:/opt/traccar/data
+    networks: [gps]
+    depends_on: [bridge]
+    logging: {driver: json-file, options: {max-size: 10m, max-file: '2'}}
+  bridge:
+    image: python:3.12-alpine@sha256:0687a6bc9716edc2a6ee0fbfb0f87e7ee358b262b67c9215de91bc9b2d38ba71
+    user: "65534:65534"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    command: [python, -B, /app/bridge.py, --config, /run/gps/bridge.json, --bind, 0.0.0.0]
+    volumes:
+      - ./bridge.py:/app/bridge.py:ro
+      - ./private/bridge.json:/run/gps/bridge.json:ro
+    networks: [gps]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/healthz', timeout=2)"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    logging: {driver: json-file, options: {max-size: 10m, max-file: '2'}}
+networks:
+  gps: {}
+volumes:
+  receiver-data: {}

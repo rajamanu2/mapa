@@ -1,0 +1,100 @@
+name: mapa-live-access
+services:
+  api:
+    image: mapa-cloud-api:pilot
+    restart: unless-stopped
+    command: [php, artisan, 'octane:frankenphp', '--workers=2', '--max-requests=500', '--port=8000', '--host=0.0.0.0']
+    env_file: ../asr/.env
+    environment:
+      APP_NAME: MAPA
+      MAPA_VOICE_MANUAL_ENABLED: 'true'
+      MAPA_GEOCODING_ENABLED: 'true'
+      MAPA_MOBILE_ENROLLMENT_ENABLED: 'true'
+      MAPA_MOBILE_COMPLETION_EVIDENCE_ENABLED: 'true'
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      LOG_LEVEL: warning
+      XDEBUG_MODE: 'off'
+      APP_URL: ${MAPA_PUBLIC_ORIGIN}/api
+      CONSOLE_HOST: ${MAPA_PUBLIC_ORIGIN}
+      SESSION_DOMAIN: ${MAPA_PUBLIC_HOST}
+      SESSION_SECURE_COOKIE: 'true'
+      SESSION_DRIVER: redis
+      DB_HOST: asr-fleetbase-pilot-database-1
+      DB_DATABASE: fleetbase
+      DB_USERNAME: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD}@asr-fleetbase-pilot-database-1/fleetbase
+      REDIS_HOST: asr-fleetbase-pilot-cache-1
+      REDIS_URL: tcp://asr-fleetbase-pilot-cache-1
+      CACHE_URL: tcp://asr-fleetbase-pilot-cache-1
+      CACHE_DRIVER: redis
+      QUEUE_CONNECTION: redis
+      BROADCAST_DRIVER: socketcluster
+      SOCKETCLUSTER_HOST: asr-fleetbase-pilot-socket-1
+      SOCKETCLUSTER_PORT: 8000
+      REGISTRY_PREINSTALLED_EXTENSIONS: 'true'
+    volumes:
+      - uploads:/fleetbase/api/storage/app
+      - ../asr/mobile:/fleetbase/api/app/MapaMobile:ro
+      - ../asr/voice:/fleetbase/api/app/MapaVoice:ro
+      - ./overrides/SettingController.php:/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Controllers/Internal/v1/SettingController.php:ro
+      - ./overrides/OrderResource.php:/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Resources/v1/Order.php:ro
+      - ./overrides/CurrentJobResource.php:/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Resources/v1/CurrentJob.php:ro
+      - ./overrides/VehicleResource.php:/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Resources/v1/Vehicle.php:ro
+      - ./overrides/VehicleWithoutDriverResource.php:/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Resources/v1/VehicleWithoutDriver.php:ro
+      - ./overrides/VehicleIndexResource.php:/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Resources/v1/Index/Vehicle.php:ro
+      - ./overrides/LiveController.php:/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Controllers/Internal/v1/LiveController.php:ro
+    networks: [application, native]
+    logging: &logs
+      driver: json-file
+      options: {max-size: '5m', max-file: '2'}
+  access:
+    image: node:22-alpine
+    restart: unless-stopped
+    command: [node, /srv/access.mjs]
+    environment:
+      MAPA_API_ORIGIN: http://api:8000
+      MAPA_COMPANY_UUID: 29eff7bc-7b9b-4d8a-b1b4-55f33681bd2d
+      MAPA_ADMINISTRATOR_ROLE_ID: 09f40b88-0305-4226-8dde-6433eb08c53b
+      MAPA_CUSTOMER_USER_UUID: 60985940-8012-5b2a-8916-37e756bbe2a9
+    volumes: ['./access.mjs:/srv/access.mjs:ro']
+    networks: [application]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging: *logs
+  gateway:
+    image: nginx:1.31.6-alpine
+    restart: unless-stopped
+    ports: ['127.0.0.1:8896:8080']
+    environment:
+      MAPA_PUBLIC_HOST: ${MAPA_PUBLIC_HOST}
+      NGINX_ENVSUBST_FILTER: ^MAPA_PUBLIC_HOST$$
+    volumes:
+      - ./gateway.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./proxy.conf:/etc/nginx/mapa-proxy.conf:ro
+      - ../../private/live-access/console:/usr/share/nginx/html:ro
+    networks: [front, application, native]
+    logging: *logs
+  tunnel:
+    image: cloudflare/cloudflared:2026.9.1
+    restart: unless-stopped
+    dns: [1.1.1.1, 8.8.8.8]
+    profiles: [public]
+    command: [tunnel, --no-autoupdate, --protocol, http2, --url, 'http://gateway:8080']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [front]
+    logging: *logs
+networks:
+  front: {}
+  application: {internal: true}
+  native:
+    external: true
+    name: asr-fleetbase-pilot_default
+volumes:
+  uploads:
+    external: true
+    name: asr-fleetbase-pilot_uploads

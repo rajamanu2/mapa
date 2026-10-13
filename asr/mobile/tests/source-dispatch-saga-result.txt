@@ -1,0 +1,41 @@
+Fresh internal QA network and disposable MySQL started; no production volumes or ports.
+PASS 1 reservation cannot start inside outer transaction
+PASS 2 durable intent precedes any remote call
+PASS 3 independent SQL connection sees intent before HTTP
+PASS 4 lost reserve reply keeps unknown ownership
+PASS 5 unknown intent continues holding fleet identities
+PASS 6 unknown ownership prevents remapping
+PASS 7 second journey cannot use locally held resources
+PASS 8 same journey cannot change request details on recovery
+PASS 9 retry preserves committed request actor and journey identity
+PASS 10 unknown reserve retries exact signed envelope
+PASS 11 native rollback retains source reservation without duplicate order
+PASS 12 confirmed recovery does not reserve again
+PASS 13 linked journey cannot create another native order
+PASS 14 one native order after crash recovery
+PASS 15 independent worker acquires journey mutex
+PASS 16 concurrent reservation worker cannot bypass mutex
+PASS 17 rolled-back native activity leaves no source transition
+PASS 18 pickup queues scene arrival then transporting after start
+PASS 19 unknown first transition blocks later source phases
+PASS 20 worker rechecks crew binding revision before HTTP
+PASS 21 changed mapping holds queued ownership transitions
+PASS 22 uncertain transition retries identical request envelope
+PASS 23 worker confirms source phases in order
+PASS 24 completion requires native handover confirmation
+PASS 25 worker verifies persisted native handover evidence
+PASS 26 revoked native actor cannot release source ownership
+PASS 27 only confirmed ordered completion releases local hold
+PASS 28 terminal ownership permits subsequent reviewed mapping change
+PASS 29 acknowledged outbox cannot repeat terminal transition
+PASS 30 coordination flag preserves disabled state
+PASS 31 actual VoiceService native transaction can fail after source reserve
+PASS 32 VoiceService rollback retains prior committed source intent and removes partial native order
+PASS 33 failed native dispatch leaves call and receipt uncommitted
+PASS 34 actual VoiceService commits native order and source intent link together
+PASS 35 same dispatch recovery reuses source reserve and produces one native order
+PASS 36 actual VoiceService immutable receipt replay performs no extra reserve
+MAPA_DISPATCH_SAGA_SUITE_COMPLETE: 36 checks passed.
+
+Dedicated native test result: PASS
+Disposable QA resources removed; existing MAPA services untouched.

@@ -1,0 +1,61 @@
+PASS 1 start source daily session
+PASS 2 retry identical command returns receipt
+PASS 3 retry does not duplicate session
+PASS 4 idempotency payload change conflicts (Request ID already has another workflow payload.)
+PASS 5 stale workflow rejected (Source workflow changed. Fetch and review again.)
+PASS 6 revoked actor rejected on retry (Source workflow action not granted.)
+PASS 7 multi-patient rows recorded
+PASS 8 distance stored once per journey
+PASS 9 closing odometer increments once
+PASS 10 completed trip receipt replay
+PASS 11 no duplicate patients on replay
+PASS 12 MAPA snapshot CAS matches independent source database context
+PASS 13 receipt ledger excludes patient facts
+PASS 14 context excludes patient facts
+PASS 15 overlapping journey rejected (An existing source trip overlaps this completed journey.)
+PASS 16 foreign driver scope rejected (Driver is not permitted for this ambulance posting/category.)
+PASS 17 invalid hierarchy rejected (Secretariat does not belong to PHC.)
+PASS 18 future drop rejected (Completed-trip times must follow the session date, be ordered and not be in the future.)
+PASS 19 distance upper bound enforced (Trip distance must be greater than zero and at most 500 km.)
+PASS 20 patient phone required (Valid patient age, gender and contact required.)
+PASS 21 unapproved patient field rejected (Unexpected or missing workflow fields.)
+PASS 22 receipt failure surfaced
+PASS 23 receipt failure rolls back all patients
+PASS 24 receipt failure rolls back mileage
+PASS 25 unfinished source CAD blocks closing (An unfinished source/CAD trip needs control review.)
+PASS 26 mismatched closing odometer rejected (Review the calculated closing odometer; corrections require control.)
+PASS 27 close session persists closed state
+PASS 28 closed session refuses completed trip (Trip requires the current open On Road source session.)
+PASS 29 signed workflow accepted
+PASS 30 signed body modification rejected
+PASS 31 expired signature rejected
+PASS 32 other command-domain signature rejected
+PASS 33 open repair blocks start (Control must return the ambulance to road first.)
+PASS 34 repair odometer cannot reverse (Return-to-road odometer cannot go backwards.)
+PASS 35 source repair return never implies MAPA duty ready
+PASS 36 repair completion persists
+PASS 37 repair creates current day session once
+PASS 38 legacy FLOAT precision loss is rejected (Source odometer precision requires a decimal schema migration.)
+PASS 39 precision failure rolls back source session
+PASS 40 MAPA reservation acquires source vehicle and driver
+PASS 41 reservation retry preserves owner
+PASS 42 second journey cannot reserve vehicle or driver (Ambulance or driver is reserved by a MAPA journey.)
+PASS 43 original CAD cannot dispatch MAPA reservation (MAPA owns the current journey; finish it before changing its vehicle, driver or daily records.)
+PASS 44 workflow cannot close MAPA-owned session (MAPA owns the current journey; finish it before changing its vehicle, driver or daily records.)
+PASS 45 reservation cannot skip to completion (Invalid journey ownership transition.)
+PASS 46 explicit cancellation releases durable ownership
+PASS 47 terminal transition retry is stable
+PASS 48 terminal ownership cannot be resurrected (Journey ownership changed.)
+PASS 49 original CAD completion replay cannot increment odometer (Trip already ended or is unavailable; mileage was not applied again.)
+PASS 50 original CAD cannot cancel completed trip (Dispatch identity changed or journey already ended.)
+PASS 51 original status cannot mutate a mismatched incident (Dispatch identity changed or journey already ended.)
+PASS 52 isolated reservation worker finished: 
+PASS 53 isolated reservation worker finished: 
+PASS 54 concurrent MAPA reservations have exactly one winner
+PASS 55 one durable vehicle and driver owner after race
+PASS 56 restricted writer can execute approved workflow
+PASS 57 restricted writer rejects DELETE
+PASS 58 restricted writer rejects UPDATE
+PASS 59 restricted writer rejects CREATE
+PASS 60 24 staged original/helper PHP files lint clean
+SOURCE WORKFLOW PASS 60 checks

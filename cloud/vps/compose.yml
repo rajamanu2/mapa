@@ -1,0 +1,163 @@
+name: mapa-vps
+
+x-api: &api
+  image: mapa-vps-api:release
+  build:
+    context: .
+    dockerfile: Dockerfile.api
+    args:
+      MAPA_API_BASE_IMAGE: ${MAPA_API_BASE_IMAGE:?Import and verify the reviewed API image}
+  restart: unless-stopped
+  env_file: ./private/api.env
+  environment:
+    APP_NAME: MAPA
+    APP_ENV: production
+    APP_DEBUG: 'false'
+    XDEBUG_MODE: 'off'
+    APP_URL: https://${MAPA_PUBLIC_HOST}/api
+    CONSOLE_HOST: https://${MAPA_PUBLIC_HOST}
+    SESSION_DOMAIN: ${MAPA_PUBLIC_HOST}
+    SESSION_SECURE_COOKIE: 'true'
+    SESSION_DRIVER: redis
+    DB_HOST: database
+    DB_DATABASE: fleetbase
+    DB_USERNAME: mapa
+    DB_PASSWORD: ${MYSQL_PASSWORD:?Set private database password}
+    REDIS_HOST: cache
+    REDIS_URL: tcp://cache
+    CACHE_URL: tcp://cache
+    CACHE_DRIVER: redis
+    QUEUE_CONNECTION: redis
+    BROADCAST_DRIVER: socketcluster
+    SOCKETCLUSTER_HOST: socket
+    SOCKETCLUSTER_PORT: '8000'
+    REGISTRY_PREINSTALLED_EXTENSIONS: 'true'
+    MAPA_VOICE_DEMO_ENABLED: 'false'
+    MAPA_VOICE_LIVE_ENABLED: 'false'
+    MAPA_TRACKING_ORIGIN: https://${MAPA_PUBLIC_HOST}
+  volumes:
+    - uploads:/fleetbase/api/storage/app
+    - ./private/provider-secrets:/run/mapa-secrets:ro
+  networks: [application, data]
+  depends_on:
+    database: {condition: service_healthy}
+    cache: {condition: service_healthy}
+  logging: &logs
+    driver: json-file
+    options: {max-size: '10m', max-file: '3'}
+
+services:
+  database:
+    image: mysql:8.0-oracle
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set private root password}
+      MYSQL_DATABASE: fleetbase
+      MYSQL_USER: mapa
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes: [mysql:/var/lib/mysql]
+    networks: [data]
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD="$$MYSQL_ROOT_PASSWORD" mysqladmin ping -h localhost -uroot --silent']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    logging: *logs
+  cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: [redis-server, --appendonly, 'yes']
+    volumes: [redis:/data]
+    networks: [data]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    logging: *logs
+  api:
+    <<: *api
+    command: [php, artisan, 'octane:frankenphp', '--workers=4', '--max-requests=500', '--port=8000', '--host=0.0.0.0']
+  queue:
+    <<: *api
+    command: [php, artisan, 'queue:work', '--sleep=3', '--tries=3', '--timeout=60']
+    stop_grace_period: 90s
+    healthcheck:
+      test: [CMD, php, '-r', 'exit(str_contains(file_get_contents("/proc/1/cmdline"),"queue:work") ? 0 : 1);']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+  scheduler:
+    <<: *api
+    command: [go-crond, --verbose, 'root:./crontab']
+    stop_grace_period: 90s
+    healthcheck:
+      test: [CMD, php, '-r', 'exit(str_contains(file_get_contents("/proc/1/cmdline"),"go-crond") ? 0 : 1);']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+  socket:
+    image: socketcluster/socketcluster:v17.4.0
+    restart: unless-stopped
+    environment:
+      ENV: prod
+      SOCKETCLUSTER_OPTIONS: '{"origins":["${MAPA_PUBLIC_HOST}:443","${MAPA_PUBLIC_HOST}"]}'
+    networks: [application]
+    logging: *logs
+  access:
+    image: node:22-alpine
+    restart: unless-stopped
+    command: [node, /srv/access.mjs]
+    environment:
+      MAPA_API_ORIGIN: http://api:8000
+      MAPA_COMPANY_UUID: ${MAPA_COMPANY_UUID:?Retain verified company UUID}
+      MAPA_ADMINISTRATOR_ROLE_ID: ${MAPA_ADMINISTRATOR_ROLE_ID:-}
+      MAPA_CUSTOMER_USER_UUID: ${MAPA_CUSTOMER_USER_UUID:-}
+    volumes: ['./runtime/access.mjs:/srv/access.mjs:ro']
+    networks: [application]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging: *logs
+  gateway:
+    image: nginx:1.31.6-alpine
+    restart: unless-stopped
+    environment:
+      MAPA_PUBLIC_HOST: ${MAPA_PUBLIC_HOST}
+      NGINX_ENVSUBST_FILTER: ^MAPA_PUBLIC_HOST$$
+    volumes:
+      - ./runtime/gateway.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./runtime/proxy.conf:/etc/nginx/mapa-proxy.conf:ro
+      - ./public-console:/usr/share/nginx/html:ro
+    networks: [front, application]
+    depends_on: [api, access, socket]
+    logging: *logs
+  https:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      MAPA_PUBLIC_HOST: ${MAPA_PUBLIC_HOST:?Set exact public hostname}
+      MAPA_TLS_EMAIL: ${MAPA_TLS_EMAIL:?Set certificate contact email}
+    ports: ['80:80', '443:443']
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [front]
+    depends_on: [gateway]
+    logging: *logs
+
+networks:
+  front:
+    ipam:
+      config: [{subnet: 172.30.89.0/24}]
+  application: {}
+  data: {internal: true}
+volumes:
+  mysql: {}
+  redis: {}
+  uploads: {}
+  caddy_data: {}
+  caddy_config: {}

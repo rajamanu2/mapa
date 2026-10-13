@@ -1,0 +1,14 @@
+{
+  "name": "ASR Health",
+  "short_name": "ASR Health",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "/images/asr-health-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

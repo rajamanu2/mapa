@@ -1,0 +1,39 @@
+/* MAPA saved-call panel: independent of native map/table/board layout. */
+.mapa-intake-action{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border:1px solid #52677e;border-radius:8px;background:#15283a;color:#ecf5ff;font:600 13px system-ui;cursor:pointer;text-decoration:none}
+.mapa-intake-action:focus-visible{outline:3px solid #4bdaca;outline-offset:2px}
+.mapa-intake-floating{position:fixed;right:16px;top:76px;z-index:90}
+.mapa-intake-panel{position:fixed;right:12px;top:72px;bottom:12px;width:min(460px,calc(100vw - 24px));box-sizing:border-box;z-index:100;overflow:auto;background:#101b2b;color:#edf5ff;border:1px solid #53657b;border-radius:12px;padding:18px;box-shadow:0 16px 48px #0008;font:14px/1.45 system-ui}
+.mapa-intake-heading,.mapa-intake-controls{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.mapa-intake-heading h2{font-size:21px;margin:0}
+.mapa-intake-note,.mapa-intake-status,.mapa-intake-updated,.mapa-intake-order{color:#bccbdc;font-size:12px;overflow-wrap:anywhere}
+.mapa-intake-status{padding:9px 0}
+.mapa-intake-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.mapa-intake-call{padding:12px;border:1px solid #3d5066;border-radius:8px;background:#1b2a3b;overflow-wrap:anywhere}
+.mapa-intake-caller,.mapa-intake-updated,.mapa-intake-order{display:block}
+.mapa-intake-state{display:inline-block;margin-top:6px;padding:3px 7px;border-radius:5px;background:#264842;color:#baffef;font-size:12px}
+.mapa-intake-address{margin:8px 0}
+.mapa-intake-empty{padding:16px 0}
+@media(max-width:480px){.mapa-intake-panel{top:60px;padding:12px}
+.mapa-intake-floating{top:auto;bottom:12px}
+.mapa-intake-action{min-height:40px}
+}
+
+
+/* Header status stays aligned; panel action sizing remains independent. */
+#view-header-tray-items{flex:0 0 auto;align-items:center;gap:8px}
+#view-header-tray-items #mapa-intake-summary{box-sizing:border-box;flex:0 0 auto;height:32px;min-height:32px;margin:0;padding:0 10px;white-space:nowrap;font:500 12px/1.25 "Inter UI",Arial,Helvetica,sans-serif;border-color:#396375;background:#183445;color:#e7faf6}
+#view-header-tray-items #mapa-intake-summary:hover{background:#1b4853;border-color:#63b6ab}
+
+/* Intake is a workspace view alongside Map, Table and Board. */
+.next-view-section-container.mapa-intake-workspace-open{position:relative}
+.mapa-intake-workspace-frame{position:absolute;inset:40px 0 0;width:100%;height:calc(100% - 40px);border:0;background:#fff;z-index:800}
+:is(.dark,.dark-theme) .mapa-intake-workspace-frame{background:#111827}
+#mapa-new-call-view-button{font:inherit;border-radius:999px;padding:3px 16px;min-height:24px;background:#e5e7eb;color:#111827;border:0;cursor:pointer}
+#mapa-new-call-view-button.active{background:#3388e6;color:white}
+:is(.dark,.dark-theme) #mapa-new-call-view-button{background:#374151;color:#f9fafb}
+:is(.dark,.dark-theme) #mapa-new-call-view-button.active{background:#3388e6}
+html:not(.dark):not(:has(body.dark-theme)) .mapa-intake-panel,html:not(.dark):not(:has(body.dark-theme)) .mapa-intake-call{background:#fff;color:#111827;border-color:#d1d5db}
+html:not(.dark):not(:has(body.dark-theme)) .mapa-intake-action{background:#f3f4f6;color:#111827;border-color:#d1d5db}
+html:not(.dark):not(:has(body.dark-theme)) .mapa-intake-note,html:not(.dark):not(:has(body.dark-theme)) .mapa-intake-status,html:not(.dark):not(:has(body.dark-theme)) .mapa-intake-updated,html:not(.dark):not(:has(body.dark-theme)) .mapa-intake-order{color:#4b5563}
+
+#mapa-new-call-view-button.has-pending-notifications{background:#dc2626!important;color:#fff!important;box-shadow:0 0 0 2px rgba(239,68,68,.15)}

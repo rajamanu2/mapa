@@ -1,0 +1,57 @@
+map $request_uri $mapa_api_uri {
+    ~^/api(?<api_remainder>/.*)$ $api_remainder;
+    default "";
+}
+server {
+    listen 8080 default_server;
+    server_name ${MAPA_PUBLIC_HOST};
+    root /usr/share/nginx/html;
+    server_tokens off;
+    access_log off;
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    client_max_body_size 10m;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy same-origin always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header Cache-Control "no-store" always;
+
+    location = /healthz { return 200 "MAPA gateway ready\n"; }
+
+    # Public registration is unnecessary for this migrated, already-onboarded demo.
+    location ~* ^/api/int/v1/(auth/sign-up|onboard/(?!should-onboard(?:/|$))) { return 404; }
+    # The bridge sends events directly over the private Docker network.
+    location ~* ^/(api/)?mapa/voice/v1/bridge(?:/|$) { return 404; }
+    location ~* ^/(?:api/)?(?:_debugbar|_ignition|telescope|horizon)(?:/|$) { return 404; }
+    location ~ (^|/)\. { return 404; }
+    location ~* \.(?:env|sql|sqlite|sqlite3|log|bak)(?:$|/) { return 404; }
+    location ~* ^/(?:private|raw-console|backups)(?:/|$) { return 404; }
+
+    # Default upstream SocketCluster has no tenant subscription authorization.
+    # This gate cannot be opened using a browser request or an environment flag.
+    location ^~ /socketcluster { return 503; }
+    # Telephone media stays off until Exotel number and human fallback are verified.
+    location ^~ /media { return 404; }
+
+    location /api/ {
+        set $mapa_api http://application:8000;
+        proxy_pass $mapa_api$mapa_api_uri;
+        include /etc/nginx/mapa-proxy.conf;
+    }
+    location /mapa/mobile/v1/ {
+        client_max_body_size 32k;
+        set $mapa_api http://application:8000;
+        proxy_pass $mapa_api$request_uri;
+        include /etc/nginx/mapa-proxy.conf;
+    }
+    location /mapa/voice/v1/ {
+        client_max_body_size 128k;
+        set $mapa_api http://application:8000;
+        proxy_pass $mapa_api$request_uri;
+        include /etc/nginx/mapa-proxy.conf;
+    }
+    location = /fleetbase.config.json {
+        default_type application/json;
+        try_files $uri =404;
+    }
+    location / { try_files $uri $uri/ /index.html =404; }
+}

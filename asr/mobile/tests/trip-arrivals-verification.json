@@ -1,0 +1,35 @@
+{
+  "checked_at": "2026-10-07T11:28:15.749214+00:00",
+  "result": "PASS",
+  "arrival_sqlite_checks": 35,
+  "command_desk_sqlite_checks": 39,
+  "android_arrival_checks": 14,
+  "android_existing_regressions": {
+    "native_contract": 132,
+    "crew_ui": 93,
+    "route_data": 17,
+    "enrollment_alerts": 67,
+    "completion_queue": 21,
+    "automatic_dispatch": 7
+  },
+  "full_android_java_compile": "PASS active source list against existing Android35 platform; no signing or publication",
+  "php_syntax": "PASS TripArrivalService",
+  "limitations": [
+    "SQLite uses explicit fake auth boundary and native Eloquent fixture models; deployed MySQL/HTTP integration not exercised",
+    "No live phone/GPS/notification tests",
+    "No production deployment or ASR writes",
+    "Existing completion flow is unchanged; arrival is an explicit report, not automatic geofence confirmation"
+  ],
+  "sha256": {
+    "fleetbase/asr/mobile/TripArrivalService.php": "01a97248bca244c6d8b8056a6a9ad4764c043eb19965ea12eb3e730894db33ec",
+    "fleetbase/asr/mobile/tests/trip-arrivals.php": "6e72c086fe0ec56a39fccba401625d19d206b2214ed8c966d9f7409802675b29",
+    "fleetbase/asr/mobile/TRIP-ARRIVALS.md": "2011e634c85b87d0a386558e8a28350c1d4802bfbba0d915532fa74a30ca0ae5",
+    "fleetbase/asr/voice/CommandDeskPolicy.php": "b75ff5ef9f2de4878bb531fb0b210732cc5bf40ee5f1c25e10e05c99137cdf0d",
+    "fleetbase/asr/voice/CommandDeskService.php": "db90453ae0a4acfa4d28f41509d5c0c5fca602d4ea7376d396e63796c394dd5a",
+    "mapa-android/src/in/asr/ambulance/NativeProtocol.java": "74a55553270bf76190ef4a8a1aaf820bd3f4e596f20cfa62d27c7f9a3f3eda70",
+    "mapa-android/src/in/asr/ambulance/NativeOutbox.java": "9bf9ea93a3d85f5bbd48ff6d8c0737ba510901be4f22f189df27828a413e7a01",
+    "mapa-android/src/in/asr/ambulance/NativeMainActivity.java": "2a5b91fa5a1e09f0303920bac7b8fc6ce8b202b1275027637704fc459797d998",
+    "mapa-android/tests/NativeArrivalsTest.java": "8123e3fff083178dfb93c88d6e3bafe0e4d5a0374f12162382929ef4b63764eb",
+    "mapa-android/test-native.ps1": "c17c2b7503b0f8fc9f92fecad99008aa1a792caf86a8295f5a4b9ae33a2d0847"
+  }
+}

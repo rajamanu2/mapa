@@ -1,0 +1,91 @@
+{
+  "checked_at": "2026-09-30T23:52:02.942125+00:00",
+  "state": "PASS",
+  "proof": "offline syntax and pure policy only",
+  "production_writes": 0,
+  "source_hashes": {
+    "ImportPlan.php": "c18c206f8b3a4f68eb87167518c1ef93329b6865c7fe7931c6dcc3fdcbd2f15b",
+    "ImportApply.php": "cd91be05cf73fea91a238741db823293ad2195d2b24a92115f4260b3d66c747f",
+    "apply-native.php": "0563039301a5e29a3c4b5d200afa28d7fdcb631ff4870f9f45f3bf6959494bae",
+    "snapshot-native.php": "4a79c3aae4a9db91dd6eb4abeb3b0d5fd547dfc2e8c800f6f3167bd812dcb669",
+    "inspect-native.php": "01b66581743b90f2162b4688a86294a36734410ebc9d674bbf73cafbdc7d3e42",
+    "tests/policy.php": "ade260f30dd949cb7353a2f5ad71da4166fdfbdeb9a18a3d9b9eb514881168b7",
+    "apply.py": "24e17f18ae5d47afec11fbe4b0254a1c191311294e6996530d678465fa9e186e",
+    "stage.py": "5bcaf171742f737126b4c30f90846b440d18b1bb1b615ddb30211db89daa4c6e",
+    "VerifyInventory.php": "b6c46d0372314f64e5f61132a2b4f87cdfcb42a26a222c8e309fe10c9e631be1",
+    "verify-native.php": "1facefb89616eac7d99ed8fbfe8c802be79ab9d7e5c122b30ac2a087bec47732",
+    "verify.py": "d576418faf8da6f283ef6ba20f6c139a0f86cc509135442dd87dff36dcd000d3",
+    "tests/verification.php": "17ba34ef0825af1d7b9c40c856b889d91cfd7bcc6d4c91aae865afd1cfa51730"
+  },
+  "checks": [
+    {
+      "id": "lint-ImportPlan.php",
+      "pass": true,
+      "detail": "No syntax errors detected in /qa/import/ImportPlan.php"
+    },
+    {
+      "id": "lint-ImportApply.php",
+      "pass": true,
+      "detail": "No syntax errors detected in /qa/import/ImportApply.php"
+    },
+    {
+      "id": "lint-apply-native.php",
+      "pass": true,
+      "detail": "No syntax errors detected in /qa/import/apply-native.php"
+    },
+    {
+      "id": "lint-snapshot-native.php",
+      "pass": true,
+      "detail": "No syntax errors detected in /qa/import/snapshot-native.php"
+    },
+    {
+      "id": "lint-inspect-native.php",
+      "pass": true,
+      "detail": "No syntax errors detected in /qa/import/inspect-native.php"
+    },
+    {
+      "id": "lint-tests/policy.php",
+      "pass": true,
+      "detail": "No syntax errors detected in /qa/import/tests/policy.php"
+    },
+    {
+      "id": "lint-VerifyInventory.php",
+      "pass": true,
+      "detail": "No syntax errors detected in /qa/import/VerifyInventory.php"
+    },
+    {
+      "id": "lint-verify-native.php",
+      "pass": true,
+      "detail": "No syntax errors detected in /qa/import/verify-native.php"
+    },
+    {
+      "id": "lint-tests/verification.php",
+      "pass": true,
+      "detail": "No syntax errors detected in /qa/import/tests/verification.php"
+    },
+    {
+      "id": "pure-resource-policy",
+      "pass": true,
+      "detail": "23 isolated resource-only policy checks passed."
+    },
+    {
+      "id": "pure-inventory-verification",
+      "pass": true,
+      "detail": "49 pure read-only inventory verification checks passed."
+    },
+    {
+      "id": "exact-launcher-body-lint",
+      "pass": true,
+      "detail": "No syntax errors detected in Standard input code"
+    },
+    {
+      "id": "exact-readonly-verifier-body-lint",
+      "pass": true,
+      "detail": "No syntax errors detected in Standard input code"
+    },
+    {
+      "id": "source-stability",
+      "pass": true
+    }
+  ]
+}

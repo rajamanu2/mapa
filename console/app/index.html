@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="MAPA by ASR Health: secure ambulance operations, crew coordination and connected response." />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta property="og:title" content="MAPA | ASR Health" />
+    <meta property="og:description" content="Ambulance operations and connected response." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://app.itda.asrhealth.in/images/mapa-social-preview.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="msapplication-TileColor" content="#da532c" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>MAPA Command Centre | ASR Health</title>
+
+    {{content-for "head"}}
+    <link rel="icon" type="image/svg+xml" href="/images/asr-health-icon.svg" />
+    <link rel="stylesheet" href="{{rootURL}}mapa-legal.css?v=20260919">
+    <script defer src="{{rootURL}}mapa-legal.js?v=20260919"></script>
+    <link rel="stylesheet" href="{{rootURL}}mapa-voice.css?v=20261008-lifecycle">
+    <script defer src="{{rootURL}}mapa-voice.js?v=20261008-lifecycle"></script>
+    <link rel="stylesheet" href="{{rootURL}}mapa-intake-native.css?v=20261005-nav-aligned">
+    <link rel="stylesheet" href="{{rootURL}}mapa-asr-board-native.css?v=20261009-asr-board">
+    <link rel="stylesheet" href="{{rootURL}}mapa-crew-native.css?v=20261005-nav-aligned">
+    <link rel="stylesheet" href="{{rootURL}}mapa-source-native.css?v=20261005-native-sidebar">
+    <link integrity="" rel="stylesheet" href="{{rootURL}}assets/vendor.css">
+        <link integrity="" rel="stylesheet" href="{{rootURL}}assets/@fleetbase/console.css">
+        <link rel="stylesheet" href="{{rootURL}}mapa-layout-fixes.css?v=20260919-call-layout">
+    <link rel="stylesheet" href="{{rootURL}}mapa-loading.css?v=20261005-asr-health">
+    <script defer src="{{rootURL}}mapa-loading.js?v=20261005-asr-health"></script>
+
+    {{content-for "head-footer"}}
+      <link rel="stylesheet" href="{{rootURL}}mapa-text-flow.css?v=20261008">
+      <link rel="stylesheet" href="{{rootURL}}mapa-dispatch-settings.css?v=20261012">
+</head>
+  <body>
+    {{content-for "body"}}
+    <div id="boot-loader" class="mapa-boot" role="status" aria-live="polite" aria-label="ASR Health is opening">
+      <div class="mapa-boot-content">
+        <img class="mapa-boot-logo" src="/images/asr-health-icon.svg" width="72" height="72" alt="" />
+        <div class="mapa-boot-wordmark">ASR HEALTH</div>
+        <div class="mapa-boot-route" aria-hidden="true">
+          <span class="mapa-boot-point mapa-boot-point-start"></span>
+          <span class="mapa-boot-point mapa-boot-point-end"></span>
+          <span class="mapa-boot-ambulance"><span class="mapa-boot-cross"></span><span class="mapa-boot-window"></span><span class="mapa-boot-beacon"></span></span>
+        </div>
+        <p class="mapa-boot-message">Opening your operations workspace…</p>
+      </div>
+    </div>
+    <script src="{{rootURL}}assets/vendor.js"></script>
+    <!-- Register the supported native crew initializer after Ember's loader, before App boot. -->
+    <script src="{{rootURL}}mapa-crew-native.js?v=20261005-nav-aligned"></script>
+    <script src="{{rootURL}}mapa-integration-editor.js?v=20261005-native-sidebar"></script>
+    <script src="{{rootURL}}mapa-connection-view.js?v=20261006-source-v2"></script>
+    <script src="{{rootURL}}mapa-integration-view.js?v=20261006-source-v2"></script>
+    <script src="{{rootURL}}mapa-source-native.js?v=20261005-native-sidebar"></script>
+    <script src="{{rootURL}}mapa-intake-native.js?v=20261005-nav-aligned"></script>
+    <script src="{{rootURL}}mapa-asr-board-native.js?v=20261009-asr-board"></script>
+    <script src="{{rootURL}}mapa-text-flow.js?v=20261008"></script>
+    <script src="{{rootURL}}mapa-dispatch-settings.js?v=20261012"></script>
+    <script src="{{rootURL}}assets/@fleetbase/console.js"></script>
+
+    {{content-for "body-footer"}}
+  </body>
+</html>

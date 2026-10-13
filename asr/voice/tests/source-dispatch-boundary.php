@@ -1,0 +1,19 @@
+<?php
+// Isolated eligibility boundary: no application .env, messages, native models or production DB.
+require $argv[1];
+$app=new Illuminate\Container\Container;Illuminate\Container\Container::setInstance($app);
+Illuminate\Support\Facades\Facade::setFacadeApplication($app);
+$db=new Illuminate\Database\Capsule\Manager($app);$db->addConnection(['driver'=>'sqlite','database'=>':memory:']);$db->setAsGlobal();$db->bootEloquent();
+$app->instance('db',$db->getDatabaseManager());$app->bind('db.schema',fn()=>$db->getConnection()->getSchemaBuilder());
+require __DIR__.'/../Policy.php';require __DIR__.'/../VoiceService.php';
+class SourceBoundary extends App\MapaVoice\VoiceService {public function inspect($d,$v,$call){return $this->inspectEligibility($d,$v,$call,['vehicle_requirement'=>'any']);}}
+$check=function($condition,$label){if(!$condition)throw new RuntimeException($label);};$service=new SourceBoundary;
+$d=(object)['uuid'=>'DEMO-driver','company_uuid'=>'DEMO-company','meta'=>null,'online'=>false];$v=(object)['uuid'=>'DEMO-vehicle','meta'=>null,'online'=>false];$call=(object)['company_uuid'=>'DEMO-company','demo'=>false];$checks=0;
+foreach(['asr_import','asr_source_id','mapa_source_id'] as $key){$d->meta=json_encode([$key=>'DEMO-source']);$check($service->inspect($d,$v,$call)['code']==='source_owned','Source metadata blocks duplicate native dispatch');$checks++;}
+$d->meta=null;$v->meta=json_encode(['asr_import'=>['id'=>'DEMO-source']]);$check($service->inspect($d,$v,$call)['code']==='source_owned','Vehicle import blocks duplicate dispatch');$checks++;$v->meta=null;
+Illuminate\Support\Facades\Schema::create('mapa_source_connections',function($t){$t->text('company_uuid');$t->text('native_uuid');$t->text('dataset');});
+Illuminate\Support\Facades\DB::table('mapa_source_connections')->insert(['company_uuid'=>'DEMO-other-company','native_uuid'=>$d->uuid,'dataset'=>'drivers']);
+$check($service->inspect($d,$v,$call)['code']==='off_duty','Other company connection does not alter own eligibility');$checks++;
+Illuminate\Support\Facades\DB::table('mapa_source_connections')->insert(['company_uuid'=>$call->company_uuid,'native_uuid'=>$d->uuid,'dataset'=>'drivers']);
+$check($service->inspect($d,$v,$call)['code']==='source_owned','Exact tenant source connection blocks native dispatch');$checks++;
+echo $checks.' source dispatch ownership boundary checks passed; isolated SQLite, zero production writes.'.PHP_EOL;

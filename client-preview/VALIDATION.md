@@ -1,0 +1,15 @@
+# Current client preview status — 18 September 2026
+
+Client URL: https://mapa-client-preview.pages.dev/fleet-ops
+
+23 end-to-end HTTPS checks passed through the Pages URL using normal DNS and verified TLS, including viewer login/session/bootstrap, the users/me extension permission, places/vehicles/drivers/orders reads, operational write rejection and logout. The test identifies itself as MAPA-Preview-Verification/1.0 because Cloudflare rejects the generic Python user agent with error 1010. Chrome sign-in was verified with the client viewer, followed by the operations map showing five fictional ambulances, five fictional drivers, five fictional places and one fictional call.
+
+Isolated database audit: one synthetic company ASR Health DEMO, seven .invalid users, five ambulances, five drivers, five places and one fictional call/order. All modeled records have meta.mapa_demo=true. No real account rows, phone numbers, uploads, API credentials, integrated vendors, provider secrets or live notifications copied. Original database remained unchanged. Client viewer has sixteen list/view permissions plus nine menu-visibility permissions (see extension and the eight scoped resources), with no admin or write permissions. The public gateway also enforces read-only methods and denies credential/integration/export routes.
+
+Pages project mapa-client-preview is deployed separately from the existing asr-ambulance project. Production deployment: e99c1b1c.mapa-client-preview.pages.dev. User-approved Wrangler OAuth completed with Pages publishing access. The relay source is pages/_worker.js and its fixed upstream is the isolated synthetic-data quick tunnel.
+
+The copied console, isolated API environment and gateway forwarding Host use the public Pages origin. Only the preview API/gateway were recreated; the existing quick tunnel was preserved. The API worker initially failed after recreation; clearing its configuration cache and restarting only the preview API restored service. All 23 public checks passed after recovery. The original localhost:4200 application and database were not modified.
+
+Keep this PC, Docker and preview containers running. Pages supplies the public address and relay; it does not provide always-on backend hosting. Restarting the quick tunnel may require updating and redeploying the relay upstream. Live telephone calls, ingestion, sockets and operational writes remain disabled for this client preview.
+
+Viewer navigation fixes: the native user-profile cache is invalidated after permission changes; permissions resolve before login events; ability checks use current grants rather than a constructor snapshot. `check-viewer-navigation.cjs` passed login grant refresh, write denial, immediate revocation, wildcard/admin compatibility and login-listener checks. Only the adapted preview bundle was patched. The map gateway uses strict-origin-when-cross-origin so OpenStreetMap tile requests identify the public site without sending private paths or queries; the district tiles were verified visually in Chrome.

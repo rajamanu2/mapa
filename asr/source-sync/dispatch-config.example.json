@@ -1,0 +1,10 @@
+{
+  "enabled": false,
+  "original_writers_coordinated": false,
+  "source_timezone": "",
+  "dsn": "mysql:host=localhost;dbname=REPLACE_DATABASE;charset=utf8mb4",
+  "username": "REPLACE_RESTRICTED_DISPATCH_ACCOUNT",
+  "password": "",
+  "secret": "",
+  "actors": {}
+}

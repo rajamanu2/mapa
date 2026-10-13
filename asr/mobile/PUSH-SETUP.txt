@@ -1,0 +1,153 @@
+Validation on 4 October 2026 for hospital background implementation:
+- Disposable native integration suite: 335 checks PASS, including 23 new
+  hospital push checks. Fresh internal QA database, no production connections,
+  no external notifications. Temporary QA resources were removed afterward.
+- NativePushPolicyTest: 17 checks PASS (crew plus hospital scope and privacy).
+- Android native/reliability suites: 361 assertions PASS (378 with push policy).
+- Optional Firebase compileReleaseJavaWithJavac: PASS offline against pinned
+  SDK with deliberately invalid compile-only Android config. No FCM APK built.
+- Staged standard APK: 1.13.1-pilot / code19, existing signer verified, v2/v3.
+  This APK does NOT include Firebase. No phone-install/provider-delivery test.
+
+MAPA hospital background alerts — addition, 4 October 2026
+
+Hospital support is implemented in the optional Firebase build and backend.
+It is NOT commissioned: no customer Firebase project exists yet. Ordinary
+APKs including 1.13.1 contain no Firebase SDK and cannot receive FCM in the
+background. Do not claim the signed fallback APK has background alerts.
+
+Apply additive migration 2026_10_04_000008_create_mapa_hospital_push_tables.php
+only after a backup and deployment review. It creates separate encrypted
+hospital device tokens and provider-acceptance receipts. Existing crew push
+columns and targets are unchanged. MAPA_HOSPITAL_PUSH_ENABLED defaults false;
+both that flag and MAPA_MOBILE_PUSH_ENABLED must be enabled when ready.
+HospitalHandoverService queues HospitalPushObserver only after a new onboard
+report commits; repeated submission does not enqueue another event. Queue
+workers need the same source, configuration and private credential mount.
+
+An authenticated hospital phone uses the existing /push, /push/register and
+/push/unregister endpoints. Its hospital/place, tenant and session are derived
+from the server binding, never supplied by the app. At delivery the worker
+rechecks session expiry/revocation, credentials, membership/MFA eligibility,
+binding/place, current trip destination/assignment and unacknowledged report.
+Training records, ended trips, changed destinations and acknowledged reports
+are not delivered. Hints expire in 120 seconds, share hospital collapse key,
+and have backend delivery deduplication; exact-once delivery is not promised.
+
+Hospital FCM data includes only kind=mapa_hospital_changed, event_id,
+session_tag and issued_at. Android rejects crew/hospital role mismatches,
+expired/cross-session hints and additional payload fields. Notification text
+is generic: Open MAPA and review Incoming patients. No patient condition,
+identity, coordinates or trip ID are sent through FCM. The authenticated
+hospital API must be opened to obtain details. Provider acceptance and local
+notification creation are NOT hospital acknowledgement or proof of readiness.
+The existing Acknowledge/Team ready API actions remain the only receipt of
+staff response. Control must escalate if staff do not acknowledge.
+
+Commissioning checklist:
+- Create an operator-owned Firebase project and register in.asr.ambulance.
+- Supply Android google-services.json privately and backend service account
+  separately. Never package the service-account file in an APK.
+- Compile/sign the optional Gradle APK using the existing signing key.
+- Configure both API and queue; migrate additive tables; enable flags.
+- Bind each hospital staff account to its actual receiving hospital.
+- Install Firebase APK, sign in, allow notifications, inspect Account status.
+- Perform a supervised end-to-end patient-onboard scenario without patient
+  data, verify locked/background phone alert, authenticated report retrieval
+  and explicit acknowledgement in the control center.
+- Test wrong hospital, changed destination, logout, revoked membership,
+  lost internet, expired session, notification denial and app force-stop.
+- Do not claim offline or guaranteed delivery; provide backup contact process.
+
+MAPA Android assignment alerts — operator setup and acceptance
+30 September 2026
+
+Implemented: authenticated per-session device registration, encrypted FCM token
+storage, native assignment hook, after-commit queued FCM HTTP v1 delivery,
+short-lived generic phone alert, logout/scope/credential/MFA revalidation,
+token rotation and invalid-token revocation, and Android permission handling.
+
+Not yet commissioned: no MAPA Firebase project, Android Firebase config or
+server service-account credential has been supplied. Real phone delivery has
+NOT been demonstrated. MAPA_MOBILE_PUSH_ENABLED defaults to false and the API
+reports push_alerts=false until required configuration and tables exist.
+The ordinary dependency-free APK does not include the Firebase SDK.
+
+Required configuration, all from the same operator-owned Firebase project:
+1. Register Android package in.asr.ambulance and obtain google-services.json.
+   This is Android configuration, not a server private key. Supply its private
+   local path to the optional fcm Gradle build; never put service-account JSON
+   inside the APK or public downloads.
+2. Enable Firebase Cloud Messaging HTTP v1. Provision a service account with
+   only the messaging permissions required for this Firebase project. Mount
+   the JSON credential read-only into BOTH the native API and queue worker.
+3. Set MAPA_FCM_PROJECT_ID and MAPA_FCM_CREDENTIALS_FILE to the project ID and
+   in-container credential file path. Keep MAPA_MOBILE_PUSH_ENABLED=false
+   while the build, migration and queue setup are being reviewed.
+4. Apply only migration 2026_09_30_000003_create_mapa_mobile_push_tables.php
+   after backup and review. It creates new module tables; it does not alter
+   native users, drivers, vehicles or orders. The root deployment applied this additive migration on
+   30 September 2026 after reviewing its SQL; push remains disabled.
+5. Deploy the same current App/MapaMobile source to API and queue workers.
+   Native Eloquent assignment changes use PushAssignmentObserver. Call Intake
+   explicitly invokes assigned(Order) after writing its native assignment.
+   Restart/reload only the affected application/queue workers when scheduled;
+   never restart the database just to enable push.
+6. Enable MAPA_MOBILE_PUSH_ENABLED=true only when the Android Firebase build
+   and real linked crew account are ready for supervised acceptance.
+
+Authentication and privacy:
+- POST /mapa/mobile/v1/push/register accepts installation_id (UUID) and
+  fcm_token. All company, user, driver and ambulance identities are derived
+  from the existing opaque bearer session. The endpoint is rate limited.
+- GET /mapa/mobile/v1/push reports available/registered to an authenticated
+  phone. POST /mapa/mobile/v1/push/unregister revokes that session's alerts.
+- Registrations expire with the 12-hour native session; no perpetual bearer
+  token is stored. Logout, password/MFA changes, membership disable and native
+  driver/ambulance changes are rechecked before provider submission.
+- FCM receives ONLY a generic event kind, random-looking event digest,
+  session digest and issuance time. No patient, caller number, pickup, order
+  ID, driver name or coordinates are included. The notification says to open
+  MAPA; the authenticated API supplies current assignment details afterward.
+- Provider acceptance is NOT delivery or crew acknowledgement. No alert can
+  dispatch, accept or complete a call by itself. Existing acknowledgement and
+  travel evidence remain separate native records.
+- Training records never trigger the production push sender. Queue failures
+  do not roll back dispatch; control must verify the crew acknowledgement.
+- Retries may be delivered more than once by the provider. Backend event
+  receipts and phone event IDs suppress repeats; exact-once delivery is not
+  claimed. Hints expire in 120 seconds and never replace the operator's
+  escalation procedure if an assignment is not acknowledged.
+
+Acceptance on each real phone (start with one phone, then increase):
+1. Install the correctly signed Firebase-enabled APK and log in with that
+   phone's linked crew identity. Check its ambulance registration.
+2. Allow notification permission and the MAPA assigned-calls channel; enable
+   location sharing only with the crew's consent. Account should show push
+   registration success; this alone is not a received-message test.
+3. With supervised operator approval, create a clearly identified test task
+   in the real workflow for the assigned ambulance. Do not use patient data
+   or send an ambulance on a false emergency. Verify API/queue acceptance,
+   visible phone notification with screen locked, open-to-current-assignment,
+   and genuine crew acknowledgement in the web app.
+4. Repeat with background app, phone lock, lost-and-restored internet, token
+   refresh and logout/reassignment. Confirm no previous crew phone receives
+   private details. Force-stopped apps, disabled notifications, missing Google
+   Play services, no internet, or vendor battery restrictions can stop alerts.
+5. Keep an operator backup contact procedure. Test the 25-phone workload;
+   simultaneous 25-device capacity has not yet been measured.
+
+Isolated tests:
+php /fleetbase/api/app/MapaMobile/tests/push.php
+Result: 26 checks passed using connection-local TEMPORARY table shadows,
+synthetic marked records and fake HTTP only; no real notifications sent.
+NativePushPolicyTest.java: 10 checks of malformed, stale, cross-session and
+unexpected sensitive payload rejection.
+The optional Firebase Android source also passed Gradle Java compilation
+against the actual pinned SDK using a deliberately invalid compile-only
+Android config. No APK was published and no provider traffic was sent.
+
+References:
+https://firebase.google.com/docs/cloud-messaging/android/get-started
+https://firebase.google.com/docs/cloud-messaging/android/receive-messages
+https://firebase.google.com/docs/cloud-messaging/send/v1-api

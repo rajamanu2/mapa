@@ -1,0 +1,5 @@
+# Private operations portal: search indexing is intentionally disabled.
+# This is not access control; APIs require authorization independently.
+User-agent: *
+Disallow: /
+Sitemap: https://app.itda.asrhealth.in/sitemap.xml

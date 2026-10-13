@@ -1,0 +1,50 @@
+PASS 1 reviewed schema receipt verifies without source writes
+PASS 2 normal included bootstrap is verified no-op
+PASS 3 direct setup denied during coordination
+PASS 4 coordination and maintenance cannot both be enabled
+PASS 5 disabled bridge alone does not authorize maintenance
+PASS 6 web request cannot run schema reconciliation
+PASS 7 unrelated include cannot initiate maintenance
+PASS 8 active MAPA ownership blocks maintenance
+PASS 9 unfinished source CAD trip blocks maintenance
+PASS 10 explicit offline CLI maintenance gate passes with no active journeys
+PASS 11 reviewed CLI maintenance can include dependent bootstrap
+PASS 12 schema drift fails closed before original writers
+PASS 13 restored fixture metadata matches reviewed receipt
+PASS 14 active incident provenance cannot be deleted
+PASS 15 terminal incident with dispatch history retains provenance
+PASS 16 original permission-gated undispatched deletion remains available
+PASS 17 repair cannot return a different ambulance to road
+PASS 18 manual session cannot target a different ambulance
+PASS 19 component deletion cannot cross repair identity
+PASS 20 valid component identity retains original form path
+PASS 21 private policy loads
+PASS 22 public policy file refused
+PASS 23 missing explicit policy fails closed
+PASS 24 staged hash ambulance_index.php
+PASS 25 staged hash drivers.php
+PASS 26 staged hash ambulance_running.php
+PASS 27 staged hash ambulance_profile.php
+PASS 28 staged hash off_road_ambulances.php
+PASS 29 staged hash cad_save_dispatch.php
+PASS 30 staged hash cad_complete_trip.php
+PASS 31 staged hash cad_update_status.php
+PASS 32 staged hash cad_save_incident.php
+PASS 33 staged hash cad_dispatch.php
+PASS 34 staged hash cad_incident_list.php
+PASS 35 staged hash ambulance_analytics.php
+PASS 36 staged hash setup_running_db.php
+PASS 37 staged hash cad_db_init.php
+PASS 38 staged hash self_heal_ambulance.php
+PASS 39 staged hash _mapa_bridge/SourceDispatchCoordinator.php
+PASS 40 staged hash _mapa_bridge/SourceOriginalWriterGuard.php
+PASS 41 staged hash _mapa_bridge/SourceCoordinationPolicy.php
+PASS 42 staged hash _mapa_bridge/SourceManualTransactions.php
+PASS 43 staged hash _mapa_bridge/SourceRepairPhotos.php
+PASS 44 staged hash _mapa_bridge/original-writer-hook.php
+PASS 45 staged hash _mapa_bridge/original-bootstrap-hook.php
+PASS 46 staged hash _mapa_bridge/SourceCommands.php
+PASS 47 staged hash _mapa_bridge/SourceSync.php
+PASS 48 24 staged original/helper PHP files lint
+PASS 49 all SQL-mutating PHP files in supplied archive have a guard
+SOURCE COORDINATION POLICY PASS 49 checks

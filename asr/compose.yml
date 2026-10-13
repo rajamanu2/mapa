@@ -1,0 +1,134 @@
+name: asr-fleetbase-pilot
+x-api: &api
+  image: asr-fleetbase-api:pilot
+  build:
+    context: ..
+    dockerfile: asr/Dockerfile
+  restart: unless-stopped
+  env_file: .env
+  environment:
+    APP_NAME: MAPA
+    MAPA_VOICE_MANUAL_ENABLED: 'true'
+    MAPA_GEOCODING_ENABLED: 'true'
+    MAPA_MOBILE_ENROLLMENT_ENABLED: 'true'
+    MAPA_MOBILE_COMPLETION_EVIDENCE_ENABLED: 'true'
+    APP_ENV: local
+    APP_DEBUG: "false"
+    APP_URL: http://localhost:8000
+    CONSOLE_HOST: http://localhost:4200
+    DATABASE_URL: mysql://root:${MYSQL_ROOT_PASSWORD}@database/fleetbase
+    DB_HOST: database
+    DB_DATABASE: fleetbase
+    DB_USERNAME: root
+    DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    REDIS_HOST: cache
+    REDIS_URL: tcp://cache
+    CACHE_URL: tcp://cache
+    CACHE_DRIVER: redis
+    QUEUE_CONNECTION: redis
+    BROADCAST_DRIVER: socketcluster
+    SOCKETCLUSTER_HOST: socket
+    SOCKETCLUSTER_PORT: 8000
+    SESSION_DOMAIN: localhost
+    MAIL_MAILER: log
+    MAIL_FROM_ADDRESS: pilot@example.invalid
+    MAIL_FROM_NAME: MAPA
+    REGISTRY_PREINSTALLED_EXTENSIONS: "true"
+  volumes:
+    - uploads:/fleetbase/api/storage/app
+    - ./mobile:/fleetbase/api/app/MapaMobile:ro
+    - ./voice:/fleetbase/api/app/MapaVoice:ro
+    - ../live-access/overrides/OrderResource.php:/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Resources/v1/Order.php:ro
+    - ../live-access/overrides/CurrentJobResource.php:/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Resources/v1/CurrentJob.php:ro
+    - ../live-access/overrides/VehicleResource.php:/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Resources/v1/Vehicle.php:ro
+    - ../live-access/overrides/VehicleWithoutDriverResource.php:/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Resources/v1/VehicleWithoutDriver.php:ro
+    - ../live-access/overrides/VehicleIndexResource.php:/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Resources/v1/Index/Vehicle.php:ro
+    - ../live-access/overrides/LiveController.php:/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Controllers/Internal/v1/LiveController.php:ro
+  depends_on:
+    database:
+      condition: service_healthy
+    cache:
+      condition: service_started
+services:
+  database:
+    image: mysql:8.0-oracle
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: fleetbase
+    volumes:
+      - mysql:/var/lib/mysql
+    healthcheck:
+      test: [CMD-SHELL, 'mysqladmin ping -h localhost -uroot -p"$$MYSQL_ROOT_PASSWORD" --silent']
+      interval: 10s
+      timeout: 5s
+      retries: 20
+  cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+  socket:
+    image: socketcluster/socketcluster:v17.4.0
+    restart: unless-stopped
+    ports: ["127.0.0.1:38000:8000"]
+    environment:
+      SOCKETCLUSTER_OPTIONS: '{"origins":["localhost:4200"]}'
+  application:
+    <<: *api
+    ports: ["127.0.0.1:8000:8000"]
+  queue:
+    <<: *api
+    command: [php, artisan, "queue:work"]
+    healthcheck:
+      test: [CMD, php, -r, "exit(str_contains(file_get_contents('/proc/1/cmdline'), 'queue:work') ? 0 : 1);"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  scheduler:
+    <<: *api
+    command: [go-crond, --verbose, "root:./crontab"]
+    healthcheck:
+      test: [CMD, php, -r, "exit(str_contains(file_get_contents('/proc/1/cmdline'), 'go-crond') ? 0 : 1);"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  console:
+    restart: unless-stopped
+    build:
+      context: ../console
+      dockerfile: Dockerfile
+      args:
+        ENVIRONMENT: development
+    ports: ["127.0.0.1:4200:4200"]
+    volumes:
+      - ../console/fleetbase.config.json:/usr/share/nginx/html/fleetbase.config.json:ro
+  voice-bridge:
+    image: mapa-voice-bridge:pilot
+    build:
+      context: ../../mapa-voice-bridge
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports: ["127.0.0.1:8789:8789"]
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8789
+      QUEUE_DB: /data/voice-journal.sqlite
+      MAPA_API_ORIGIN: http://application:8000
+      MAPA_ALLOW_INTERNAL_HTTP: "true"
+      MAPA_VOICE_LIVE_ENABLED: ${MAPA_VOICE_LIVE_ENABLED:-false}
+      MAPA_VOICE_BRIDGE_SECRET: ${MAPA_VOICE_BRIDGE_SECRET:-}
+      EXOTEL_ACCOUNT_SID: ${MAPA_EXOTEL_ACCOUNT_SID:-}
+      STREAM_USER: ${MAPA_VOICE_STREAM_USER:-}
+      STREAM_PASSWORD: ${MAPA_VOICE_STREAM_PASSWORD:-}
+      SARVAM_API_KEY: ${SARVAM_API_KEY:-}
+      MAPA_VOICE_PUBLIC_WSS: ${MAPA_VOICE_PUBLIC_WSS:-}
+      MAPA_VOICE_HUMAN_FALLBACK_CONFIGURED: ${MAPA_VOICE_HUMAN_FALLBACK_CONFIGURED:-false}
+      MAPA_VOICE_DEFAULT_LANGUAGE: ${MAPA_VOICE_DEFAULT_LANGUAGE:-en}
+    volumes:
+      - voice_journal:/data
+    depends_on:
+      application:
+        condition: service_started
+volumes:
+  mysql:
+  uploads:
+  voice_journal:

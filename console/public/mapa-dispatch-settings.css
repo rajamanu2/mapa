@@ -1,0 +1,19 @@
+#sidebar-menu-items .mapa-dispatch-settings-item{width:100%;min-height:40px;text-align:left;padding:8px 18px;background:transparent;border:0;color:inherit;cursor:pointer;font:inherit}
+#sidebar-menu-items .mapa-dispatch-settings-item:hover,#sidebar-menu-items .mapa-dispatch-settings-item[aria-current=page]{background:#e7eefc;color:#1d4ed8}
+.next-view-section.mapa-dispatch-open{position:relative;overflow:hidden}
+.next-view-section.mapa-dispatch-open>:not(.mapa-dispatch-panel){display:none!important}
+.mapa-dispatch-panel{height:100%;overflow:auto;padding:28px;box-sizing:border-box;background:#fff;color:#0f172a;font:14px system-ui}
+.mapa-dispatch-panel *{box-sizing:border-box}
+.mapa-dispatch-panel header{border-bottom:1px solid #dbe3ed;margin-bottom:20px;padding-bottom:12px}
+.mapa-dispatch-panel small{color:#2563eb;font-weight:700;letter-spacing:.12em}
+.mapa-dispatch-panel h2{font-size:24px;margin:5px 0}
+.mapa-dispatch-panel p{max-width:800px;line-height:1.6;color:#475569}
+.mapa-dispatch-alert:not(:empty){padding:12px;border:1px solid #fca5a5;border-radius:8px;background:#fef2f2;color:#991b1b!important}
+.mapa-dispatch-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:24px 0}
+.mapa-dispatch-fact{display:flex;flex-direction:column;gap:8px;padding:16px;border:1px solid #dbe3ed;border-radius:8px;background:#f8fafc}
+.mapa-dispatch-fact span{font-size:12px;color:#64748b}.mapa-dispatch-fact strong{font-size:16px;overflow-wrap:anywhere}
+.mapa-dispatch-actions{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0}
+.mapa-dispatch-actions button{min-height:38px;padding:8px 14px;border-radius:7px;border:1px solid #94a3b8;background:#fff;cursor:pointer}
+.mapa-dispatch-actions button:first-child{background:#2563eb;color:#fff;border-color:#2563eb}
+.mapa-dispatch-actions button:disabled{opacity:.5;cursor:default}
+.mapa-dispatch-actions button:focus-visible,#sidebar-menu-items .mapa-dispatch-settings-item:focus-visible{outline:3px solid #3b82f6;outline-offset:2px}

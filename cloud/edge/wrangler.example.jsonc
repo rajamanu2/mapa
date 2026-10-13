@@ -1,0 +1,25 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "mapa",
+  "account_id": "e01cd9f1fa2f5d4b743bb1b819658e36",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2026-09-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "PUBLIC_ORIGIN": "https://mapa.rajamanu2.workers.dev"
+  },
+  "vpc_services": [
+    {
+      "binding": "MAPA_ORIGIN",
+      // Configuration example only. Replace with the VPS gateway VPC Service ID.
+      "service_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  // Invocation logs can contain request URLs. Disable them because intake URLs
+  // and queries may contain personal information; no request/body/header logging.
+  "observability": {
+    "enabled": false
+  }
+}

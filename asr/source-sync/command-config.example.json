@@ -1,0 +1,8 @@
+{
+  "enabled": false,
+  "dsn": "mysql:host=localhost;dbname=REPLACE_SOURCE_DATABASE;charset=utf8mb4",
+  "username": "REPLACE_RESTRICTED_COMMAND_USER",
+  "password": "",
+  "secret": "",
+  "actors": {}
+}

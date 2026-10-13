@@ -1,0 +1,28 @@
+{
+    "ok": true,
+    "checks": 20,
+    "cases": [
+        "Road time outranks straight line proximity",
+        "Road minutes use ceiling",
+        "Verified GPS timestamp is preserved",
+        "Authorized operator map identifies driver phone GPS and timestamp",
+        "Eligibility exclusions and inventory remain intact",
+        "Shared ASR ambulance never recommended for native dispatch",
+        "Reserved crews excluded before routing",
+        "Missing confirmed pickup prevents route requests",
+        "Invalid or missing road time rejected: NULL",
+        "Invalid or missing road time rejected: -1",
+        "Invalid or missing road time rejected: NAN",
+        "Invalid or missing road time rejected: INF",
+        "Invalid or missing road time rejected: 172801",
+        "Road routing bounded to 10 proximity shortlisted eligible vehicles",
+        "Invalid location never reaches router",
+        "Countdown active and response unknown",
+        "No response at exact expiry boundary",
+        "Acceptance response time measured",
+        "Worker expiry is not a crew response",
+        "Operator cancellation is not a crew response"
+    ],
+    "network_requests": 0,
+    "production_writes": 0
+}

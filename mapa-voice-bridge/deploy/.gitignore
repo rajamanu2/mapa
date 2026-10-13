@@ -1,0 +1,4 @@
+.private/
+test-artifacts/
+*.htpasswd
+ingress.env

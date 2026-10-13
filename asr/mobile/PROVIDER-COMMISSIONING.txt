@@ -1,0 +1,119 @@
+MAPA / ASR Health — provider commissioning, 5 October 2026
+
+CURRENT FACTS
+The owner confirmed WhatsApp Business, Firebase and independent backup storage
+are not set up. No physical BR05 or test phone is available for this run.
+Nothing in this checklist enables providers, sends a message, changes accounts
+or declares the app ready for operational use.
+
+Raja Manohar is credited as creator at the owner's request. This does not
+identify ASR Health's registered legal operator or privacy officer. Legal
+entity, address, service jurisdiction and retention remain undecided.
+
+WHATSAPP — OWNER SETUP
+1. Use an operator-owned Meta business portfolio, WhatsApp Business Account
+   and business phone number. Complete Meta's verification/setup requirements.
+2. Create and obtain approval for the tracking template. Current adapter shape:
+   one BODY text parameter containing the HTTPS trip link, with no clinical
+   details. Name/language must exactly match the approved template.
+   Draft wording (requires Meta/operator approval):
+   ASR Health ambulance assistance: open {{1}} to share your pickup location
+   with permission and view your assigned ambulance. Contact the operator
+   if you need help.
+3. Collect phone-number ID, appropriate access token, supported Graph API
+   version, template name/language, app secret and webhook verification token.
+   Save secrets only in the private server configuration, not this document,
+   Android, chat messages, browser assets or public downloads.
+4. Proposed callback, after deployment and configuration review:
+   https://app.itda.asrhealth.in/mapa/mobile/v1/tracking/whatsapp/webhook
+   Existing GET verifies the challenge; POST validates signed status callbacks.
+   Subscribe the correct WhatsApp account to message/status notifications.
+5. Keep MAPA_WHATSAPP_ENABLED=false until configuration, recipient consent,
+   template and controlled acceptance window have been checked.
+6. Test an expressly consenting test recipient through the operator workflow.
+   Check accepted vs delivered/failed receipt, duplicate callbacks, invalid
+   signatures, timeout/unknown outcomes, revoked/expired links and privacy.
+   Do not automatically retry an ambiguous send: it may already be delivered.
+
+Local exact environment keys: config.php -> whatsapp. The callback number is
+not permission to send unrelated messages. Do not include patient details in
+the WhatsApp message or a URL query. The existing caller capability is a
+private URL fragment; do not forward or log it.
+
+FIREBASE — OWNER SETUP
+1. Create an operator-owned Firebase project; register Android application
+   package in.asr.ambulance. Keep the current Android package and signing key.
+2. Obtain its Android google-services.json and a SEPARATE backend service
+   account for FCM HTTP v1 with only the required messaging permissions.
+   Android configuration must never contain the service-account private key.
+3. The Android app config, backend service-account project_id and server
+   MAPA_FCM_PROJECT_ID must agree. Set MAPA_FCM_CREDENTIALS_FILE to a private
+   read-only in-container mount available to API AND queue workers.
+4. Build and sign the optional mapa-android/fcm variant using the existing
+   release signer. The standard published 1.13.4-pilot APK has no Firebase.
+   Compile-only tests do not establish that FCM delivery works.
+5. Before enabling, review current migrations and configuration on the VPS.
+   Both MAPA_MOBILE_PUSH_ENABLED and MAPA_HOSPITAL_PUSH_ENABLED are required
+   for hospital push. Do not rerun migration instructions from old setup
+   notes blindly: the authoritative cutover already includes migration 000008.
+6. Verify actual crew/hospital identity and binding, notification permission,
+   token registration, background and locked-screen alert, then authenticated
+   details and explicit staff acknowledgement. Test logout, reassignment,
+   changed destination, revoked membership, offline/reconnect and force-stop.
+   Provider acceptance is not delivery, staff acknowledgement or team readiness.
+   Push payloads stay generic; patient condition is obtained after authentication.
+
+OFFLINE CONFIGURATION CHECK
+Run from the repository root with Python 3, BEFORE enabling a provider:
+  python fleetbase/asr/mobile/provider-preflight.py \
+    --config-json PRIVATE_SETTINGS_JSON \
+    --android-config PRIVATE_GOOGLE_SERVICES_JSON \
+    --service-account PRIVATE_BACKEND_SERVICE_ACCOUNT_JSON
+
+PRIVATE_SETTINGS_JSON is a JSON object of MAPA_* setting names to STRING values;
+copy provider-settings.example.json into an ignored private directory first.
+The checked-in example is deliberately incomplete and keeps provider flags off.
+the process environment may be used instead by omitting --config-json. Do not
+put secret values directly in a terminal command. Paths above are placeholders.
+Use explicit string "true"/"false" or "1"/"0" for provider flags; strings such
+as "off" have different PHP truthiness and are rejected. Duplicate JSON keys
+are rejected. Both WhatsApp webhook secrets must contain at least 20 characters,
+matching the current PHP adapter. Gradle uses the first matching Android client;
+the checker validates that same selection and requires string resource fields.
+The checker makes no network calls, performs no writes and prints only named
+boolean checks and fixed status text; unrecognized flags report null rather
+than falsely reporting disabled. Exit 2 means invalid structure. Exit 0 means structural
+checks passed, NOT provider authorization, current API version support, valid
+private-key cryptography, template approval, deployed mounts or phone delivery.
+live_ready is always false. The example tests use fictional credentials only.
+Never upload checker inputs as build artifacts. Do not check them into Git.
+
+PHYSICAL ACCEPTANCE — STILL NOT RUN
+Use a controlled test window, no patient data or false emergency dispatch:
+- Operator: valid callback, deliberate tracking-link issue, consented test send.
+- Caller: allow/deny location; stop/revoke; no-fix and stale/offline behavior;
+  operator confirms the pickup before changing the actual incident location.
+- Crew: assignment alert, explicit acceptance, fresh GPS, response start,
+  pickup/onboard, hospital report, handover and completion evidence.
+- Hospital: only intended receiving hospital gets authenticated details;
+  locked-screen generic alert and explicit acknowledgement/team-ready.
+- BR05: correct ambulance, SIM/APN, supplier commands, UTC timestamps,
+  movement, loss/reconnection/power cycle and hardware/phone GPS coexistence.
+- Verify changed assignment/destination, duplicate retries, expired links,
+  wrong role/hospital, sign-out and completion all revoke inappropriate access.
+- Confirm console, phone and hospital reflect the same authoritative trip.
+
+GPS remains local-only. Do not give the supplier VPS TCP 5023 as a live endpoint
+until receiver/database/network protection and real device tests are reviewed.
+Independent backups and monitoring: see fleetbase/cloud/vps setup and tests.
+Nothing here purchases storage or changes the original asrhealth.in website.
+
+PRIMARY REFERENCES (checked 5 October 2026)
+Meta's official Cloud API collection:
+https://www.postman.com/meta/whatsapp-business-platform/documentation/wlk6lh4/whatsapp-cloud-api
+Firebase Android setup:
+https://firebase.google.com/docs/android/setup
+Firebase Android messaging:
+https://firebase.google.com/docs/cloud-messaging/android/get-started
+Firebase HTTP v1 authentication:
+https://firebase.google.com/docs/cloud-messaging/send/v1-api

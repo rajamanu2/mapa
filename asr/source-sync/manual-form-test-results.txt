@@ -1,0 +1,31 @@
+PASS 1 invisible CSRF and stable form retry fields generated
+PASS 2 CSRF remains valid across multiple open forms
+PASS 3 exact original day form runs transactionally
+PASS 4 same daily form retry returns success without duplicate row
+PASS 5 exact archived patient-array form accepted
+PASS 6 all patients saved as one action
+PASS 7 original first-patient mileage preserved
+PASS 8 closing ODO incremented once
+PASS 9 duplicate trip form cannot duplicate patients or mileage
+PASS 10 same retry ID with changed payload rejected
+PASS 11 invalid CSRF blocks form write
+PASS 12 trip edit and mileage delta commit together
+PASS 13 trip edit retry does not repeat delta
+PASS 14 original row deletion and mileage subtraction commit together
+PASS 15 delete retry returns receipt after row is gone
+PASS 16 original manager-only correction remains restricted
+PASS 17 manager odometer correction commits
+PASS 18 original close session works
+PASS 19 analytics administrator reopen works
+PASS 20 analytics reopen retry returns original success
+PASS 21 receipt failure rolls back all patient inserts
+PASS 22 receipt failure rolls back original ODO update
+PASS 23 second patient failure rolls back the first patient
+PASS 24 original coordinator category restriction survives extraction
+PASS 25 component and repair total commit together
+PASS 26 component retry creates no duplicate
+PASS 27 original repair completion preserves redirect and road update
+PASS 28 repair completion retry reuses committed receipt
+PASS 29 failed road return rolls back repair completion
+PASS 30 manual retry ledger excludes patient names and phone numbers
+SOURCE MANUAL FORMS PASS 30 checks

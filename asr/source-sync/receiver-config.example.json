@@ -1,0 +1,6 @@
+{
+  "enabled": false,
+  "url": "https://asrhealth.in/mapa-source-export.php",
+  "state_directory": "/REPLACE_WITH_PRIVATE_API_STORAGE/app/mapa-source-sync",
+  "secret": ""
+}

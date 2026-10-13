@@ -1,0 +1,7 @@
+ARG MAPA_API_BASE_IMAGE=mapa-cloud-api:transfer
+FROM ${MAPA_API_BASE_IMAGE}
+WORKDIR /fleetbase/api
+COPY TrustProxies.php app/Http/Middleware/TrustProxies.php
+RUN php -l app/Http/Middleware/TrustProxies.php && \
+    php artisan config:clear && php artisan route:clear && \
+    (test -L public/storage || ln -s /fleetbase/api/storage/app/public public/storage)

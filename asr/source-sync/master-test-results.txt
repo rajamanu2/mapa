@@ -1,0 +1,18 @@
+PASS 1 driver created
+PASS 2 create retry returns same receipt
+PASS 3 retry does not duplicate
+PASS 4 changed retry conflicts
+PASS 5 stale collection rejected
+PASS 6 revoked actor cannot replay
+PASS 7 shared phone does not merge identity
+PASS 8 foreign base denied
+PASS 9 exact deletion label required
+PASS 10 unused driver deleted
+PASS 11 delete retry idempotent
+PASS 12 driver history preserved
+PASS 13 ambulance created
+PASS 14 duplicate registration blocked
+PASS 15 institute parent mismatch blocked
+PASS 16 repair history preserved
+PASS 17 ledger excludes private roster values
+SOURCE MASTER PASS 17 checks

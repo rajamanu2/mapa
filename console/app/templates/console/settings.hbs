@@ -1,0 +1,29 @@
+{{page-title (t "common.settings")}}
+<EmberWormhole @to="sidebar-menu-items">
+    <Layout::Sidebar::Panel @open={{true}} @title={{t "common.settings"}}>
+        <Layout::Sidebar::Item @route="console.settings.index" @icon="cog">{{t "common.organization"}}</Layout::Sidebar::Item>
+        <Layout::Sidebar::Item @route="console.settings.two-fa" @icon="shield-halved">{{t "common.two-factor"}}</Layout::Sidebar::Item>
+        <Layout::Sidebar::Item @route="console.settings.notifications" @icon="bell">{{t "common.notifications"}}</Layout::Sidebar::Item>
+        {{#each this.menuService.settingsMenuItems as |menuItem|}}
+            <Layout::Sidebar::Item
+                @onClick={{fn this.universe.transitionMenuItem "console.settings.virtual" menuItem}}
+                @item={{menuItem}}
+                @icon={{menuItem.icon}}
+            >{{menuItem.title}}</Layout::Sidebar::Item>
+        {{/each}}
+    </Layout::Sidebar::Panel>
+    {{#each this.menuService.settingsMenuPanels as |menuPanel|}}
+        <Layout::Sidebar::Panel @open={{menuPanel.open}} @title={{menuPanel.title}}>
+            {{#each menuPanel.items as |menuItem|}}
+                <Layout::Sidebar::Item
+                    @onClick={{fn this.universe.transitionMenuItem "console.settings.virtual" menuItem}}
+                    @item={{menuItem}}
+                    @icon={{menuItem.icon}}
+                >{{menuItem.title}}</Layout::Sidebar::Item>
+            {{/each}}
+        </Layout::Sidebar::Panel>
+    {{/each}}
+
+</EmberWormhole>
+
+{{outlet}}

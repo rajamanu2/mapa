@@ -1,0 +1,25 @@
+{
+  "verified_at_utc": "2026-10-05T19:19:03.807520+00:00",
+  "scope": "local hospital pre-onboard assignment read projection; not deployed",
+  "native_suite": {
+    "checks": 477,
+    "result": "PASS",
+    "marker": "MAPA_NATIVE_SUITE_COMPLETE: 477 checks passed.",
+    "isolated_resources_removed": true
+  },
+  "hospital_policy": {
+    "checks": 37,
+    "result": "PASS"
+  },
+  "php_service_lint": "PASS",
+  "production_connections": false,
+  "files": {
+    "fleetbase\\asr\\mobile\\HospitalHandoverService.php": "2b02dcbe275c088fade597371d933dae1e41138c8d9d8cb95d1aa9b6cdbac395",
+    "fleetbase\\asr\\mobile\\HospitalHandoverPolicy.php": "6d6f1bda41285b3b20fa3e4c69113c4620d942302dffa32c281826ab29bcd14c",
+    "fleetbase\\asr\\mobile\\HOSPITAL-ASSIGNED-TRIPS.md": "70c98a01bafcf1e93e0c2a442d491c3655dfc467198704bc106a45b2aff2035b",
+    "fleetbase\\asr\\mobile\\tests\\hospital-assigned-native-cases.php": "97286ea740def41be917bba860906b00089c20d184b525aa4b30188dda0b39c0",
+    "fleetbase\\asr\\mobile\\tests\\hospital-handover-native-cases.php": "2390ea71b513fe207a4be2a311d80a20eed26352a09a8bd6242a0036b9e31df7",
+    "fleetbase\\asr\\mobile\\tests\\hospital-handover-policy.php": "1dff052dc16622dd6f7585878719a1a3e8f4cdda99e7a35055b6e75a2a4a6157",
+    "fleetbase\\asr\\mobile\\tests\\dedicated-native-result.txt": "963b96645089c1456f20df49b4e7541b4839d29899632325956608b86abfc3e9"
+  }
+}

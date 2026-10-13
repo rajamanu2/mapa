@@ -1,0 +1,37 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/SourceCommands.php';
+require_once __DIR__.'/SourceCoordinationPolicy.php';
+use MapaSource\SourceCommands;
+use MapaSource\CommandRejected;
+use MapaSource\SourceSync;
+ini_set('display_errors','0');
+header('Content-Type: application/json');header('Cache-Control: no-store, private');header('X-Content-Type-Options: nosniff');
+$authenticated=false;
+try {
+    $path=getenv('MAPA_SOURCE_COMMAND_CONFIG')?:dirname(__DIR__,2).'/private/mapa-source-command.json';
+    $root=realpath($_SERVER['DOCUMENT_ROOT']??'');$actual=realpath($path);
+    if(!$actual||filesize($actual)>65536||($root&&($actual===$root||str_starts_with($actual,$root.DIRECTORY_SEPARATOR)))) throw new RuntimeException('Private configuration required.');
+    $config=json_decode(file_get_contents($actual),true,16,JSON_THROW_ON_ERROR);
+    if(($config['enabled']??false)!==true) throw new RuntimeException('Disabled.');
+    $body=file_get_contents('php://input',false,null,0,SourceCommands::MAX_BYTES+1);
+    if(!is_string($body)||!SourceCommands::authorized($_SERVER,(string)($config['secret']??''),$body,time())) throw new CommandRejected(401,'Unauthorized.');
+    $authenticated=true;
+    $command=json_decode($body,true,16,JSON_THROW_ON_ERROR);
+    if(!is_array($command)) throw new CommandRejected(422,'Command object required.');
+    SourceCommands::validate($command);
+    if(!str_starts_with($config['dsn']??'','mysql:')) throw new RuntimeException('MySQL required.');
+    $db=new PDO($config['dsn'],$config['username'],$config['password'],[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false,PDO::ATTR_TIMEOUT=>5]);
+    $db->exec('SET SESSION innodb_lock_wait_timeout=5');
+    $result=\MapaSource\SourceCoordinationPolicy::operation($db,'command',fn()=>SourceCommands::execute($db,$command,$config['actors']??[]));
+} catch(CommandRejected $e) {http_response_code($e->status);$result=['error'=>$e->getMessage(),'outcome'=>'rejected'];
+} catch(JsonException $e) {http_response_code($authenticated?422:503);$result=['error'=>$authenticated?'Invalid command JSON.':'Source commands unavailable.','outcome'=>$authenticated?'rejected':'unknown'];
+} catch(Throwable $e) {http_response_code(503);$result=['error'=>'Source commands unavailable.','outcome'=>'unknown'];error_log('MAPA source command failed: '.get_class($e));}
+if($authenticated&&isset($result['error'])) {
+    $identity=['contract'=>SourceCommands::CONTRACT,'company_id'=>SourceSync::COMPANY];
+    foreach(['request_id','action','record_id'] as $field) $identity[$field]=is_string($command[$field]??null)?$command[$field]:null;
+    $result=$identity+$result;
+}
+$response=SourceSync::json($result);
+if($authenticated) header('X-Mapa-Signature: '.SourceCommands::responseSignature($config['secret'],$_SERVER['HTTP_X_MAPA_NONCE'],$response));
+echo $response;

@@ -1,0 +1,105 @@
+MAPA caller SMS and shared trip tracking — local candidate, 5 October 2026
+
+DEPLOYMENT UPDATE — 5 October 2026 (India)
+Matched mobile source, caller static assets and operator assets are now deployed
+on app.itda.asrhealth.in. Migrations000009–000013 ran after a private backup and
+dry run. Caller tracking alone is enabled. SMS/WhatsApp remain off; hardware
+ingestion and hospital handover remain off. Earlier local-only statements below
+describe the candidate's preparation. No caller link was issued without a saved
+call selection; no messages or operational trips were created for verification.
+
+INTERFACES
+Caller: ordinary browser, opened from a private SMS/WhatsApp trip link.
+Crew and receiving hospital: authenticated crew APK; never public bearer links.
+Operator: authenticated command-centre call intake and hospital overview.
+No provider accounts, modem, live sends, VPS migration or real-phone acceptance
+are implied by this source implementation. Providers remain disabled.
+
+ONE AUTHORITATIVE TRIP
+TripTrackingView projects the native order, payload pickup/dropoff, assigned
+ambulance and validated hardware/crew GPS. It does not create a parallel trip.
+The same projection appears as:
+- Full-journey caller GET /mapa/mobile/v1/tracking/view (bearer capability).
+- Each authorized mobile snapshot order.tracking.
+- Each current receiving hospital incoming handover.tracking.
+
+Fields: stage (awaiting_assignment, to_pickup, to_hospital, completed),
+leg (pickup, hospital or null), caller_location_allowed, pickup/destination
+({label,latitude,longitude} or null), ambulance ({name,registration,location}
+or null), eta:null, server_time (milliseconds), revision (projection hash).
+Coordinates can be null. Unknown/stale GPS is not fabricated or interpolated.
+These are authenticated polling updates, not an uninterrupted delivery promise.
+Clinical details remain in authenticated hospital reports, outside caller view.
+
+TRIP CALL BUTTON
+Crew and hospital APK screens and full-journey caller browser links have a call
+control for saved driver, caller and hospital numbers when available. The additive
+contacts object has driver/caller/hospital entries, each {name,phone} or null.
+Phone strings are validated canonical numbers; missing values are not invented.
+The public caller view uses generic driver/callback labels, not patient identity.
+Only current authorized trips expose contacts; legacy pickup-only links keep their
+previous contract. The client clears/disables stale, revoked and terminal contact
+controls. Tapping a valid number opens the dialler (tel/ACTION_DIAL), never an
+automatic call or a request for direct-call permission.
+
+LINKS AND LOCATION
+Issue via POST tracking/calls/{id}/links with consent_to_message:true and
+scope:full_journey. Omitted scope retains legacy pickup-only behaviour.
+Migration0011 defaults existing rows to pickup; it never widens old links.
+Full-journey links bind the saved normalized callback number and native trip.
+Changed callback/order, expiry, revocation and completion deny further access.
+The token is a private64hex fragment, never a query parameter or log field.
+
+Opening a page presents the sharing choice. A deliberate consent action requests
+browser geolocation permission. The website cannot turn on phone GPS or bypass
+permission denial. Denied/unavailable states explain the browser/phone settings.
+Stop sharing, page exit and offline state stop collection. At pickup, collection
+ends permanently for that page, while the ambulance-to-hospital view may continue.
+Hospital tracking does not require continuous location collection from the caller.
+
+SMS AFTER CALLBACK SAVE
+POST tracking/calls/{id}/sms/auto requires operator authentication and:
+action_id, consent_to_message:true, expected_callback_number.
+The callback must match the number that the operator reviewed. Inside a call-row
+transaction, the API deduplicates previous automatic attempts BEFORE issuing a
+full-journey link and reserving its message. Gateway work happens after commit.
+No SMS is triggered by typing, unsaved edits, training calls or missing setup.
+Uncertain call-save responses must be resolved before triggering SMS.
+Retries do not issue another link or resend an ambiguous SMS. Old expired/revoked
+attempts require explicit operator review; automatic retries cannot revive them.
+GET tracking/sms reports configuration. GET tracking/calls/{id}/sms returns
+attempt summaries; queued is never displayed as delivered.
+Manual POST tracking/calls/{id}/sms accepts action_id, token and explicit consent.
+See ../sms/README.md for the separate Gammu modem gateway and commissioning.
+
+CONFIRMED PICKUP SYNCHRONISATION
+Before dispatch: copy a fresh caller pin into the review form, read it back and
+save the normal confirmed pickup. GPS submission alone does not dispatch or move
+an ambulance's destination.
+After dispatch, before onboard: GET tracking/calls/{id}/locations exposes
+order_revision and can_confirm_live_pickup. POST tracking/calls/{id}/pickup uses
+link_id, recorded_at, expected_revision, action_id and confirmed:true.
+The API rejects stale/changed fixes, expired links and changed assignments. It
+clones the trip's pickup place, preserves the original place and hospital, rejects
+shared payloads, records an audit receipt and changes the crew revision.
+The crew must review the corrected assignment. Exact retries reuse the receipt.
+
+HOSPITAL TRANSFER
+The current assigned crew explicitly submits patient-onboard condition/report.
+If destination/crew changes after that report, the previous hospital loses access.
+The crew must review the current destination and report, then deliberately send
+confirm_transfer:true with a fresh order revision to patient-onboard.
+The old encrypted report is retained in revision history. The new receiving
+hospital gets an incoming state requiring its own acknowledgement. Old readiness
+is not carried forward. Optional push events are scoped to the new report revision.
+
+LOCAL MIGRATIONS AND RELEASE GATES
+0010 SMS attempts; 0011 journey link scope; 0012 pickup confirmations;
+0013 encrypted hospital handover revision history. These have NOT been applied
+to the authoritative VPS. Never start stopped PC source writers or restore stale
+PC data. Preserve the existing root website and current production environment.
+Before rollout: review migration/backup/rollback, configure private providers,
+test a real SMS/browser/BR05/crew phone/hospital phone journey, confirm consent,
+permissions, disconnection/recovery, changed pickup/hospital and completion.
+No guaranteed ETA, guaranteed SMS delivery, background phone acceptance or
+complete security/compliance sign-off is claimed by local automated tests.

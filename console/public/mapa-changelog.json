@@ -1,0 +1,12 @@
+[
+  {
+    "name": "MAPA · Ambulance operations",
+    "created_at": "19 September 2026",
+    "body": "ASR Health operators can open the call intake desk from Create new ambulance call.\nSearch the ASR district directory and online place results inside MAPA. Place or drag a pickup pin to fill its coordinates and pickup description, then confirm the exact location with the caller.\nFollow call progress from saved intake and operator review to crew dispatch and acknowledgement.\nAmbulance selection explains existing assignments, crew access, duty status, capability and GPS freshness. MAPA checks eligibility again before dispatch.\nAn optional caller coordination number is available to the assigned crew.\nDocuments and time windows are optional when creating an ambulance call."
+  },
+  {
+    "name": "MAPA · Crew and administration",
+    "created_at": "19 September 2026",
+    "body": "MAPA Crew Android 1.9.0 connects to the ASR Health workspace for assigned calls and device location updates.\nMAPA branding is used across sign in, operations, administration, AI settings and these release notes.\nAdministrator and Super Admin access retain their respective permissions.\nDEMO training records stay clearly identified. Telephone provider setup remains required before automatic incoming call capture is available."
+  }
+]

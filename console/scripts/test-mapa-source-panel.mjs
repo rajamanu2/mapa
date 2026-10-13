@@ -1,0 +1,51 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+let count = 0;
+const check = (value, name) => { assert.ok(value, name); count++; };
+const listeners = new Map();
+const pending = [];
+const sandbox = {Component: class {}, console, AbortController, setTimeout, clearTimeout,
+  setInterval: () => 1, clearInterval: () => {}, document: {hidden: false},
+  window: {addEventListener: (key, fn) => listeners.set(key, fn), removeEventListener: key => listeners.delete(key),
+    fetch: (url, options) => new Promise(resolve => pending.push({url, options, resolve}))}};
+let source = fs.readFileSync(new URL('./mapa-source-panel.js.txt', import.meta.url), 'utf8');
+source = source.replace(/^import .*;\r?\n/gm, '').replace('export default class', 'globalThis.Panel = class')
+  .replace(/@service /g, '').replace(/@tracked /g, '').replace(/@action /g, '');
+vm.runInNewContext(source, sandbox);
+const panel = new sandbox.Panel();
+const vehicle = '11111111-1111-1111-1111-111111111111';
+const second = '22222222-2222-2222-2222-222222222222';
+panel.args = {dataset: 'ambulances', resource: {uuid: vehicle}};
+panel.session = {isAuthenticated: true, data: {authenticated: {token: 'DEMO-token', user: 'DEMO-user'}}};
+panel.currentUser = {companyId: 'DEMO-company'};
+panel.fetch = {getHeaders: () => ({Authorization: 'Bearer ' + panel.session.data.authenticated.token})};
+const body = id => ({contract: 'mapa-asr-connections-v1', company_id: 'DEMO-company', native_uuid: id, dataset: 'ambulances', source: {name: 'DEMO source'}, received_at: 1});
+const reply = (index, payload, status = 200) => pending[index].resolve({status, ok: status === 200, json: async () => payload});
+let request = panel.reload();
+check(pending[0].url.endsWith('/ambulances/' + vehicle), 'native resource endpoint');
+check(pending[0].options.cache === 'no-store' && pending[0].options.credentials === 'omit' && pending[0].options.redirect === 'error', 'private transport');
+reply(0, body(vehicle)); await request;
+check(panel.data?.native_uuid === vehicle, 'verified source shown');
+panel.currentUser.companyId = 'DEMO-foreign';
+check(panel.visibleData === null && panel.fields.length === 0, 'company change hides already-loaded fields immediately');
+panel.currentUser.companyId = 'DEMO-company';
+panel.args.resource = {uuid: second}; request = panel.reload();
+check(panel.data === null, 'changing resource immediately clears prior source data');
+reply(1, body(vehicle)); await request;
+check(panel.data === null && panel.message.includes('identity'), 'mismatched native resource rejected');
+request = panel.reload(); panel.currentUser.companyId = 'DEMO-foreign'; reply(2, body(second)); await request;
+check(panel.data === null, 'inflight response after company switch discarded');
+panel.currentUser.companyId = 'DEMO-company'; request = panel.reload(); reply(3, body(second)); await request;
+check(panel.data?.native_uuid === second, 'new resource data resolves');
+request = panel.reload(); reply(4, {}, 403); await request;
+check(panel.data === null && panel.denied, 'revoked permission clears source data');
+panel.args = {mode: 'operations'}; request = panel.reload();
+check(pending[5].url.endsWith('/source-dashboard/operations'), 'operations data stays in native dashboard');
+reply(5, {contract: 'mapa-asr-connections-v1', company_id: 'DEMO-company', mode: 'operations', counts: {asr_active_incidents: 2}, received_at: 1}); await request;
+check(panel.fields[0].value === '2', 'source counts displayed');
+check(panel.display({day: 'P'}).includes('"P"'), 'attendance details render instead of object placeholder');
+panel.session.isAuthenticated = false; await panel.reload();
+check(panel.data === null && panel.denied && pending.length === 6, 'signed out creates no request');
+panel.stop(); check(!listeners.has('mapa-source-refreshed'), 'teardown removes listener');
+console.log(`Native source panel: ${count} behavior checks passed.`);

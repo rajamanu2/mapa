@@ -1,0 +1,103 @@
+.mapa-integration-sidebar{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:10px 14px;border:0;border-radius:8px;background:transparent;color:inherit;text-align:left;font:inherit;line-height:1.4;cursor:pointer}.mapa-integration-sidebar>span:first-child{font-size:22px;color:#8ee5de}.mapa-integration-sidebar:hover,.mapa-integration-sidebar[aria-current=page]{background:#314158;color:#fff}
+.mapa-integration{box-sizing:border-box;width:min(1320px,96vw);max-width:96vw;max-height:92vh;overflow:auto;border:1px solid #476077;border-radius:16px;background:#142335;color:#edf5fc;padding:24px;font-size:14px}.mapa-integration::backdrop{background:#030c18b8}.mapa-integration *{box-sizing:border-box}.mapa-integration h2{font-size:26px;line-height:1.3;margin:6px 0}.mapa-integration h3{font-size:18px;margin:20px 0 12px}.mapa-integration p{line-height:1.6;margin:8px 0}.mapa-integration small{color:#88dcd4;letter-spacing:.05em}.mapa-integration-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}.mapa-integration-header p{color:#b8c9da}.mapa-integration-actions,.mapa-integration-controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.mapa-integration button,.mapa-integration input,.mapa-integration select{font:inherit;border:1px solid #516b85;background:#223951;color:#f3f8fc;border-radius:8px;padding:10px 13px;min-height:42px;max-width:100%}.mapa-integration button{cursor:pointer}.mapa-integration button:disabled{opacity:.5;cursor:not-allowed}.mapa-integration button:focus-visible,.mapa-integration a:focus-visible,.mapa-integration-sidebar:focus-visible{outline:3px solid #76e8df;outline-offset:3px}.mapa-integration .mapa-integration-fetch{background:#106b66;border-color:#48b9ad;font-weight:600}.mapa-integration-status{padding:12px 14px;border:1px solid #286b64;border-radius:8px;background:#163c3c;color:#b7f6e5}.mapa-integration-status.is-delayed{border-color:#8f733d;background:#3c3323;color:#ffdb95}.mapa-integration-tabs{display:flex;flex-wrap:wrap;gap:8px;padding:12px 0 16px;border-bottom:1px solid #3a5066;margin-bottom:18px}.mapa-integration-tabs button{padding:8px 12px;background:#192d42}.mapa-integration-tabs button[aria-current=page]{background:#2464a0;border-color:#7fb9f1}.mapa-integration-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.mapa-integration .mapa-integration-card{display:flex;flex-direction:column;align-items:flex-start;padding:20px;text-align:left;gap:8px;background:#1d344b}.mapa-integration-card strong{font-size:32px}.mapa-integration-card small{color:#aac5db;letter-spacing:0}.mapa-integration-flow{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:#102e35;padding:18px;margin:20px 0;border-radius:10px}.mapa-integration-flow span{color:#a3c8c7}.mapa-integration-scroll{overflow:auto;max-width:100%;border:1px solid #354f68;border-radius:10px}.mapa-integration table{border-collapse:collapse;width:100%;font-size:14px}.mapa-integration th,.mapa-integration td{border-bottom:1px solid #344c63;padding:12px 14px;text-align:left;vertical-align:top;min-width:110px;line-height:1.5}.mapa-integration th{background:#1e364d;text-transform:capitalize;white-space:nowrap}.mapa-integration tbody tr:nth-child(even){background:#182b40}.mapa-integration-note{background:#1c3046;padding:4px 18px 18px;margin-top:18px;border-radius:10px}.mapa-integration a{color:#85e4e0;text-decoration:underline}.mapa-integration-controls{margin:14px 0}.mapa-integration-controls input[type=search]{flex:1;min-width:180px}.mapa-integration .mapa-integration-record{color:#98e9e0;padding:0;border:0;background:transparent;text-decoration:underline;text-align:left;min-height:30px}
+@media(max-width:650px){.mapa-integration{padding:16px;width:96vw;max-height:94vh}.mapa-integration-header{flex-direction:column;gap:12px}.mapa-integration h2{font-size:22px}.mapa-integration-cards{grid-template-columns:1fr;gap:10px}.mapa-integration .mapa-integration-card{padding:14px}.mapa-integration-card strong{font-size:26px}.mapa-integration-actions{width:100%}.mapa-integration-actions button:first-child{flex:1}.mapa-integration-tabs{flex-wrap:nowrap;overflow:auto;padding-bottom:12px}.mapa-integration-tabs button{flex:0 0 auto}.mapa-integration-flow{gap:8px;padding:14px}.mapa-integration-controls input[type=search]{width:100%;flex-basis:100%}}
+dialog.mapa-integration-editor{position:fixed;inset:0;margin:auto;width:min(620px,96vw);max-height:92dvh}.mapa-integration-editor fieldset{border:0;padding:0;margin:16px 0}.mapa-integration-editor label{display:block;margin:14px 0;line-height:1.6}.mapa-integration-editor label>input:not([type=checkbox]),.mapa-integration-editor select{display:block;width:100%;margin-top:6px}.mapa-integration-editor input[type=checkbox]{min-height:0;margin-right:8px;vertical-align:middle}
+
+/* Inline workspace; native route DOM stays mounted so drafts and map state survive. */
+.next-view-section-container.mapa-integration-active{overflow:hidden!important;min-height:0;display:flex;flex-direction:column}
+.next-view-section-container.mapa-integration-active>:not(.mapa-integration-workspace){display:none!important}
+.mapa-integration.mapa-integration-workspace{position:relative;inset:auto;margin:0;display:block;width:100%;max-width:100%;height:100%;min-height:0;max-height:none;flex:1;overflow:auto;border:0;border-radius:0;padding:20px 24px;background:#111e2e;outline:none}
+.mapa-integration-workspace .mapa-integration-header{padding:0 0 16px;border-bottom:1px solid #34475d}.mapa-integration.mapa-integration-workspace h2{font-size:22px}.mapa-integration-workspace .mapa-integration-tabs{gap:6px}.mapa-integration-workspace .mapa-integration-tabs button{min-height:36px;font-size:13px;padding:7px 10px}
+@media(max-width:650px){.mapa-integration.mapa-integration-workspace{padding:14px}.mapa-integration-workspace .mapa-integration-header{gap:8px}.mapa-integration-workspace .mapa-integration-actions{align-items:stretch}.mapa-integration-workspace .mapa-integration-actions button{padding:9px}}
+
+/* Match the existing native navigation row and keep the live monitor below it. */
+.fleet-ops-sidebar-navigator>.mapa-integration-sidebar{min-height:36px;margin:4px 0;padding:8px 12px;border-radius:6px;gap:10px;font-size:14px;line-height:20px;flex-shrink:0}
+.fleet-ops-sidebar-navigator>.mapa-integration-sidebar>.next-sidebar-navigator-item-icon{width:16px;flex:0 0 16px;font-size:18px;color:#9ca3af;text-align:center}
+.mapa-integration-sidebar .next-sidebar-navigator-item-content{min-width:0;text-align:left}.mapa-integration-sidebar .next-sidebar-navigator-item-label{white-space:normal;overflow-wrap:normal}
+.fleet-ops-sidebar-navigator>.mapa-integration-sidebar[aria-current=page]{background:#374151;color:#fff}
+.mapa-integration-selected .next-sidebar-navigator-view-in>.next-sidebar-navigator-item.is-active,.mapa-integration-selected .next-sidebar-navigator-view-in>.next-sidebar-navigator-item.is-parent-active{background:transparent}
+.mapa-integration.mapa-integration-workspace{background:#111827}
+
+/* Integration uses the Maintenance Hub component classes from fleetops-engine. */
+.mapa-source-hub{flex:1;min-width:0;outline:none}.mapa-source-hub *{box-sizing:border-box}
+.mapa-source-hub button{font-family:inherit;text-align:left;cursor:pointer}.mapa-source-hub button:disabled{opacity:.5;cursor:not-allowed}.mapa-source-hub button:focus-visible,.mapa-source-hub summary:focus-visible{outline:2px solid #60a5fa;outline-offset:3px}
+.mapa-source-hub svg{width:1.1rem;height:1.1rem;flex-shrink:0}.mapa-source-hub .fleet-ops-control-hub-kpi-icon svg{width:1.25rem;height:1.25rem}
+.mapa-source-hub .mapa-integration-content{display:flex;flex-direction:column;gap:.75rem;min-width:0}
+.mapa-source-hub .mapa-source-button,.mapa-source-records button,.mapa-source-records input,.mapa-source-records select{font:inherit;font-size:.8125rem;border:1px solid #d1d5db;border-radius:.375rem;padding:.45rem .7rem;min-height:2rem;background:#fff;color:#111827;max-width:100%}
+.mapa-source-hub .mapa-source-primary{background:#3485e2;color:#fff;border-color:#3485e2}
+.mapa-source-status{margin:0;font-size:.75rem;line-height:1.25rem;color:#6b7280}.mapa-source-status.is-delayed{color:#b45309}
+.mapa-source-hub .mapa-integration-tabs{margin:0;padding:0 0 .75rem;border-color:#e5e7eb}.mapa-source-hub [hidden]{display:none!important}
+.mapa-source-hub .mapa-integration-tabs button[aria-current=page]{background:#3485e2;color:white;border-color:#3485e2}
+.mapa-source-records h3{margin:0;font-size:1rem}.mapa-source-records table{border-collapse:collapse;width:100%;font-size:.8125rem}.mapa-source-records th,.mapa-source-records td{padding:.75rem;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:top;line-height:1.5;min-width:110px}.mapa-source-records th{text-transform:capitalize;background:#f3f4f6;white-space:nowrap}.mapa-source-records .mapa-integration-scroll{border:1px solid #e5e7eb;border-radius:.375rem}.mapa-source-records .mapa-integration-controls{margin:0}.mapa-source-records .mapa-integration-record{padding:0;border:0;background:transparent;color:#2563eb;text-decoration:underline}
+.mapa-source-hub details{font-size:.75rem;line-height:1.3rem;margin-top:.65rem}.mapa-source-hub summary{cursor:pointer;font-weight:700}.mapa-source-hub details p{margin:.4rem 0}.mapa-source-hub .fleet-ops-control-hub-doc-note-copy:last-child{margin-top:.8rem}
+body.dark-theme .mapa-source-status{color:#9ca3af}body.dark-theme .mapa-source-status.is-delayed{color:#fbbf24}
+body.dark-theme .mapa-source-hub .mapa-source-button,body.dark-theme .mapa-source-records button,body.dark-theme .mapa-source-records input,body.dark-theme .mapa-source-records select{background:#374151;border-color:#4b5563;color:#f9fafb}
+body.dark-theme .mapa-source-hub .mapa-source-primary,body.dark-theme .mapa-source-hub .mapa-integration-tabs button[aria-current=page]{background:#3485e2;border-color:#3485e2}
+body.dark-theme .mapa-source-records th{background:#1f2937}body.dark-theme .mapa-source-records th,body.dark-theme .mapa-source-records td,body.dark-theme .mapa-source-records .mapa-integration-scroll,body.dark-theme .mapa-source-hub .mapa-integration-tabs{border-color:#374151}body.dark-theme .mapa-source-records .mapa-integration-record{background:transparent;color:#93c5fd}
+@media(max-width:650px){.mapa-source-hub .fleet-ops-control-hub-header-actions{width:100%}.mapa-source-hub .fleet-ops-control-hub-kpi-copy{padding-right:2rem}.mapa-source-hub .fleet-ops-control-hub-kpi-action{white-space:normal}}
+/* Native Operations keeps its map/table; source-owned calls open in a bounded panel. */
+.mapa-source-operations-panel { position:absolute; top:58px; right:16px; width:min(540px,calc(100% - 32px)); max-height:65vh; overflow:auto; z-index:700; border-radius:8px; background:#111827; box-shadow:0 8px 24px #0005; }
+.mapa-source-connections .fleet-ops-control-hub-panel { padding:16px; margin-block:12px; }
+.mapa-source-connections label { display:flex; gap:8px; align-items:center; }
+.mapa-source-connections input[type=checkbox] { width:18px; height:18px; flex-shrink:0; }
+.mapa-source-resource-panel .field-value { overflow-wrap:anywhere; }
+/* Related dashboards use the existing Operations workspace and source freshness. */
+.mapa-related-source-summary{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;padding:.75rem 1.25rem;border-bottom:1px solid #374151;background:#172334;color:#e5e7eb;font-size:.875rem}
+.mapa-related-source-summary>span,.mapa-related-source-summary>small{color:#9ca3af}
+.mapa-related-source-summary>small{flex-basis:100%}
+.mapa-related-source-summary>button{border:1px solid #475569;border-radius:.4rem;background:#25354b;color:#dbeafe;padding:.35rem .65rem;cursor:pointer}
+
+/* Reserve separate rows for controls, source summary and dispatch results. */
+.next-view-section-container:has(>.mapa-related-source-summary):has(>.next-map-container-topbar){display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.next-view-section-container:has(>.mapa-related-source-summary):has(>.next-map-container-topbar)>:not(.next-map-container-topbar):not(.mapa-related-source-summary):not(.mapa-source-operations-panel){order:3}
+.next-view-section-container:has(>.mapa-related-source-summary)>.next-map-container-topbar{position:relative;inset:auto;order:0;flex:0 0 auto;width:100%}
+.next-view-section-container:has(>.next-map-container-topbar)>.mapa-related-source-summary{order:1;flex:0 0 auto;min-height:0;gap:8px 12px;padding:12px 20px;line-height:1.4}
+.next-view-section-container:has(>.next-map-container-topbar)>.mapa-related-source-summary>button{display:inline-flex;align-items:center;justify-content:center;min-height:32px;white-space:nowrap}
+.next-view-section-container:has(>.mapa-related-source-summary)>.mapa-source-operations-panel{position:relative;inset:auto;order:2;flex:0 0 auto;width:auto;margin:8px 16px;max-height:30vh;z-index:1}
+.next-view-section-container:has(>.mapa-related-source-summary)>.next-map-container{order:3;flex:1 1 0;height:auto;min-height:0;top:auto;bottom:auto;width:100%}
+@media(max-width:650px){.next-view-section-container:has(>.next-map-container-topbar)>.mapa-related-source-summary{padding:10px 12px;gap:8px}.next-view-section-container:has(>.mapa-related-source-summary)>.mapa-source-operations-panel{margin:8px 12px}}
+.mapa-source-profile-details{display:grid;grid-template-columns:minmax(8rem,1fr) minmax(10rem,3fr);gap:.4rem 1rem;padding:1rem;border:1px solid #374151;border-radius:.5rem}
+.mapa-source-profile-details>dt{color:#9ca3af;text-transform:capitalize}.mapa-source-profile-details>dd{margin:0;overflow-wrap:anywhere}
+/* Use MAPA's compact controls and keep its map toolbar unobstructed. */
+.next-view-section-container:has(>.next-map-container-topbar)>.mapa-related-source-summary{gap:8px 10px;padding:8px 16px;background:#111827;font-family:inherit;font-size:13px;line-height:1.4}
+.next-view-section-container:has(>.next-map-container-topbar)>.mapa-related-source-summary>button{min-height:32px;padding:5px 10px;border-color:#374151;border-radius:6px;background:#1f2937;color:#e5e7eb;font:inherit}
+.next-view-section-container:has(>.next-map-container-topbar)>.mapa-related-source-summary>small{flex-basis:auto;margin-left:auto;font-size:11px;max-width:420px}
+.next-view-section-container:has(>.mapa-related-source-summary)>.mapa-source-operations-panel{position:absolute;top:auto;bottom:16px;right:16px;left:auto;width:min(480px,calc(100% - 32px));margin:0;max-height:45vh;z-index:700;border:1px solid #374151;border-radius:8px;background:#111827}
+@media(max-width:1000px){.next-view-section-container:has(>.next-map-container-topbar)>.mapa-related-source-summary>small{flex-basis:100%;max-width:none;margin-left:0}}
+
+/* Source overlays follow MAPA light mode instead of retaining dark strips. */
+html:not(.dark):not(:has(body.dark-theme)) .mapa-related-source-summary,html:not(.dark):not(:has(body.dark-theme)) .mapa-source-operations-panel{background:#fff!important;color:#111827!important;border-color:#d1d5db!important}
+html:not(.dark):not(:has(body.dark-theme)) .mapa-related-source-summary>span,html:not(.dark):not(:has(body.dark-theme)) .mapa-related-source-summary>small{color:#4b5563}
+html:not(.dark):not(:has(body.dark-theme)) .mapa-related-source-summary>button{background:#f3f4f6!important;color:#111827!important;border-color:#d1d5db!important}
+html:not(.dark):not(:has(body.dark-theme)) .mapa-source-operations-panel summary{color:#111827!important;background:#f9fafb!important}
+
+#map-topbar-container{position:relative;display:flex;align-items:center}
+.mapa-transfer-button{margin-left:auto;margin-right:12px;border:1px solid #d1d5db;border-radius:6px;padding:5px 12px;background:#fff;color:#111827;font:600 13px inherit;cursor:pointer}
+.mapa-transfer-menu{position:absolute;right:12px;top:100%;width:min(340px,calc(100vw - 32px));padding:16px;background:#fff;color:#111827;border:1px solid #d1d5db;border-radius:8px;box-shadow:0 12px 30px #0003;z-index:1100}
+.mapa-transfer-menu h3{margin:0 0 12px;font-size:16px}.mapa-transfer-menu button{display:block;width:100%;text-align:left;margin:6px 0;padding:10px;border:1px solid #d1d5db;border-radius:6px;background:#f3f4f6;color:#111827;cursor:pointer}.mapa-transfer-menu p{font-size:12px;line-height:1.5;color:#4b5563}
+:is(.dark,.dark-theme) .mapa-transfer-button,:is(.dark,.dark-theme) .mapa-transfer-menu{background:#111827;color:#f9fafb;border-color:#374151}
+:is(.dark,.dark-theme) .mapa-transfer-menu button{background:#1f2937;color:#f9fafb;border-color:#4b5563}:is(.dark,.dark-theme) .mapa-transfer-menu p{color:#cbd5e1}
+
+/* Red means actionable pending work; refreshed or reviewed counts clear it. */
+.mapa-transfer-button.has-pending-notifications,#view-header-tray-items #mapa-intake-summary.has-pending-notifications,#view-header-tray-items #mapa-native-crew-alert:not([aria-label*="Crew registrations · 0 pending"]){background:#dc2626!important;color:#fff!important;border-color:#ef4444!important}
+
+.mapa-transfer-sidebar{display:flex;align-items:center;width:100%;padding:10px 12px;margin-top:4px;gap:10px;text-align:left;font:inherit;cursor:pointer;border-radius:6px;background:transparent;color:inherit;border:0}
+.mapa-transfer-sidebar:hover{background:#e5e7eb}:is(.dark,.dark-theme) .mapa-transfer-sidebar:hover{background:#374151}
+.mapa-transfer-sidebar.has-pending-notifications{background:#dc2626!important;color:#fff!important}
+.mapa-transfer-menu.is-sidebar{position:fixed;top:90px;left:285px;right:auto;z-index:1200}
+@media(max-width:700px){.mapa-transfer-menu.is-sidebar{left:12px;top:70px}}
+
+/* Full-width native integration workspace and glass icon navigation. */
+.fleet-ops-control-hub.mapa-source-hub{width:100%;max-width:none;margin:0;align-self:stretch;overflow:auto;min-height:0;height:100%}
+.mapa-source-hub>.fleet-ops-control-hub-header,.mapa-source-hub>.fleet-ops-control-hub-body{width:100%;max-width:none;margin-left:0;margin-right:0}
+.mapa-source-hub>.fleet-ops-control-hub-body{padding:20px 24px}
+.mapa-source-hub .mapa-integration-tabs{gap:8px;flex-wrap:wrap}
+.mapa-source-hub .mapa-integration-tabs>.mapa-source-button{display:inline-flex;align-items:center;gap:8px;border-radius:9px;padding:5px 11px 5px 5px;min-height:38px;background:#f1f5f9;color:#334155;border-color:#dce3ed;font-weight:600;box-shadow:inset 0 1px 0 #ffffffcc;transition:background .15s,border-color .15s}
+.mapa-source-tab-icon{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:7px;background:linear-gradient(145deg,#ffffffd9,#dbeafe75);border:1px solid #ffffffa6;box-shadow:inset 0 1px 0 #fff9,0 2px 5px #2563eb12;backdrop-filter:blur(8px);color:#2563eb}
+.mapa-source-hub .mapa-integration-tabs>button:hover{border-color:#93b9ef;background:#e8f1ff}
+.mapa-source-hub .mapa-integration-tabs>button[aria-current=page]{background:#3485e2;color:#fff;border-color:#3485e2}
+.mapa-source-hub .mapa-integration-tabs>button[aria-current=page] .mapa-source-tab-icon{background:linear-gradient(145deg,#ffffff4d,#ffffff12);color:#fff;border-color:#ffffff55}
+body.dark-theme .mapa-source-hub .mapa-integration-tabs>.mapa-source-button{background:#253246;border-color:#3f5068;color:#e5edf7;box-shadow:inset 0 1px 0 #ffffff0d}
+body.dark-theme .mapa-source-tab-icon{background:linear-gradient(145deg,#7cb9ff33,#34507733);border-color:#a4ccff30;box-shadow:inset 0 1px 0 #ffffff20,0 2px 5px #0002;color:#93c5fd}
+body.dark-theme .mapa-source-hub .mapa-integration-tabs>button[aria-current=page]{background:#3485e2;color:#fff;border-color:#3485e2}
+@media(max-width:650px){.mapa-source-hub>.fleet-ops-control-hub-body{padding:14px}.mapa-source-hub .mapa-integration-tabs{flex-wrap:nowrap;overflow-x:auto}.mapa-source-hub .mapa-integration-tabs>button{flex-shrink:0}}

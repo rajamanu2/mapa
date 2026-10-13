@@ -1,0 +1,23 @@
+<section class="mapa-source-resource-panel {{if (eq @mode 'operations') 'mapa-source-operations-panel'}}" {{did-insert this.start}} {{did-update this.reload @resource.id @resource.uuid @dataset @mode this.currentUser.companyId this.session.isAuthenticated this.session.data.authenticated.token}} {{will-destroy this.stop}}>
+    {{#unless this.denied}}
+        <ContentPanel @title={{this.title}} @open={{if (eq @mode "operations") false true}} @wrapperClass="bordered-top">
+            <p class="text-xs text-gray-500 dark:text-gray-400">ASR administrative records · MAPA duty, GPS and live assignments remain separate.</p>
+            {{#if this.message}}<p class="text-sm my-2" role="status">{{this.message}}</p>{{/if}}
+            {{#if this.visibleData}}
+                <p class="text-xs my-2">{{this.freshness}}</p>
+                {{#if this.data.changed_since_review}}<p class="text-sm text-amber-500">Source details changed since the link was reviewed.</p>{{/if}}
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-2 text-xs">
+                    {{#each this.fields as |field|}}<div class="field-info-container"><div class="field-name">{{field.name}}</div><div class="field-value">{{field.value}}</div></div>{{/each}}
+                </div>
+                {{#each this.sections as |section|}}
+                    <details class="mt-3"><summary class="font-semibold">{{section.name}}</summary>
+                        {{#each section.rows as |row|}}<p class="text-xs py-2 border-b dark:border-gray-700">{{row.text}}</p>{{else}}<p class="text-xs py-2">No source records in this snapshot.</p>{{/each}}
+                        {{#if section.truncated}}<p class="text-xs">Showing the first 100 records. Open Integration for paginated records.</p>{{/if}}
+                    </details>
+                {{/each}}
+                <p class="text-xs mt-3">{{this.data.statistics_unit}}</p>
+            {{/if}}
+            <button type="button" class="btn btn-default btn-sm mt-3" {{on "click" this.reload}}>Refresh source details</button>
+        </ContentPanel>
+    {{/unless}}
+</section>

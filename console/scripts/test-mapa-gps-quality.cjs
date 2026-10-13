@@ -1,0 +1,11 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {gpsQuality}=require('../public/mapa-voice.js');
+assert.equal(gpsQuality(null),'');
+for(const accuracy_m of [null,undefined,0,NaN,Infinity,'0'])assert.match(gpsQuality({accuracy_m}),/Accuracy unknown/);
+assert.match(gpsQuality({accuracy_m:12.4}),/Reported accuracy ±12 m/);
+const provider=gpsQuality({source_protocol:'way4track',position_quality:'provider_reported',accuracy_m:null,dispatch_eligible:false});
+assert.match(provider,/Way4Track provider-reported position/);assert.match(provider,/Accuracy unknown/);assert.match(provider,/not dispatch eligibility evidence/);assert.doesNotMatch(provider,/±0/);
+assert.equal(gpsQuality({gps_source_protocol:'way4track',gps_position_quality:'provider_reported',gps_accuracy_m:null,gps_dispatch_eligible:false}),provider);
+assert.equal(gpsQuality({source_protocol:'gt06',accuracy_m:null}),'Accuracy unknown');
+console.log('14 GPS quality UI checks passed; zero network or operational writes.');

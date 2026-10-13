@@ -1,0 +1,72 @@
+import Component from '@glimmer/component';
+import { inject as service } from '@ember/service';
+import { tracked } from '@glimmer/tracking';
+import { action } from '@ember/object';
+
+export default class MapaSourcePanelComponent extends Component {
+    @service session;
+    @service currentUser;
+    @service fetch;
+    @tracked data = null;
+    @tracked message = 'Checking ASR connection…';
+    @tracked denied = false;
+    sequence = 0;
+    identity() {
+        const auth = this.session.isAuthenticated && this.session.data?.authenticated;
+        return auth?.token && auth?.user && this.currentUser.companyId ? {token: auth.token, user: auth.user, company: this.currentUser.companyId} : null;
+    }
+    same(a, b) { return !!a && !!b && a.token === b.token && a.user === b.user && a.company === b.company; }
+    get visibleData() {
+        const target = this.args.mode ?? this.args.dataset + '/' + (this.args.resource?.uuid ?? this.args.resource?.id);
+        return this.same(this.lastIdentity, this.identity()) && this.lastTarget === target ? this.data : null;
+    }
+    get title() {
+        if(this.args.mode === 'operations') return 'ASR dispatch calls' + (this.visibleData ? ' · ' + (this.visibleData.counts?.asr_active_incidents ?? 0) + ' active' : '');
+        return ({maintenance:'ASR repair and road records',analytics:'ASR totals and attendance',resources:'ASR fleet records'})[this.args.mode] ?? 'ASR Health records';
+    }
+    display(value) { return value == null ? 'Not recorded' : typeof value === 'object' ? JSON.stringify(value) : String(value); }
+    get fields() { return Object.entries(this.visibleData?.source ?? this.visibleData?.counts ?? {}).map(([name, value]) => ({name: name.replaceAll('_', ' '), value: value == null ? 'Not recorded' : String(value)})); }
+    get sections() {
+        return Object.entries(this.visibleData?.sections ?? {}).map(([name, rows]) => ({name: name.replaceAll('_', ' '), truncated: this.visibleData.sections_truncated?.[name], rows: rows.map(row => ({text: Object.entries(row).map(([key, value]) => key.replaceAll('_', ' ') + ': ' + this.display(value)).join(' · ')}))}));
+    }
+    get freshness() { return this.visibleData ? (this.visibleData.stale ? 'Updates delayed' : 'Verified source snapshot') + ' · ' + new Date(this.visibleData.received_at * 1000).toLocaleString() : ''; }
+    @action start() {
+        this.listener = () => this.reload();
+        window.addEventListener('mapa-source-refreshed', this.listener);
+        this.timer = setInterval(() => { if (!document.hidden) this.reload(); }, 30000);
+        this.reload();
+    }
+    @action async reload() {
+        const own = ++this.sequence;
+        this.abort?.abort();
+        const identity = this.identity();
+        if (!this.same(this.lastIdentity, identity)) this.data = null;
+        this.lastIdentity = identity;
+        if (!identity) { this.data = null; this.denied = true; return; }
+        const id = this.args.resource?.uuid ?? this.args.resource?.id;
+        const mode = ['operations', 'maintenance', 'analytics', 'resources'].includes(this.args.mode) ? this.args.mode : null;
+        const target = mode ?? this.args.dataset + '/' + id;
+        if (this.lastTarget !== target) { this.data = null; this.denied = false; this.message = 'Checking ASR connection…'; }
+        this.lastTarget = target;
+        if (!mode && (!/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(id ?? '') || !['ambulances', 'drivers', 'hospitals'].includes(this.args.dataset))) { this.message = 'Save the native record before linking ASR data.'; return; }
+        const abort = new AbortController(); this.abort = abort;
+        const timeout = setTimeout(() => abort.abort(), 15000);
+        try {
+            const headers = this.fetch.getHeaders();
+            if (headers.Authorization !== 'Bearer ' + identity.token) throw new Error('Session changed.');
+            const url = mode ? '/api/int/v1/mapa/source-dashboard/' + mode : '/api/int/v1/mapa/source-projections/' + this.args.dataset + '/' + id;
+            const response = await window.fetch(url, {headers: {Authorization: headers.Authorization, Accept: 'application/json'}, cache: 'no-store', credentials: 'omit', redirect: 'error', signal: abort.signal});
+            if (this.isDestroying || this.isDestroyed || own !== this.sequence || !this.same(identity, this.identity())) return;
+            if ([401, 403].includes(response.status)) { this.data = null; this.denied = true; return; }
+            if (!response.ok) throw new Error(response.status === 503 ? 'ASR connection setup is pending.' : 'ASR source details are unavailable.');
+            const body = await response.json();
+            if (this.isDestroying || this.isDestroyed || own !== this.sequence || !this.same(identity, this.identity())) return;
+            if (body.contract !== 'mapa-asr-connections-v1' || body.company_id !== identity.company || (mode ? body.mode !== mode : body.native_uuid !== id || body.dataset !== this.args.dataset)) throw new Error('Source identity did not match.');
+            this.data = body; this.denied = false;
+            this.message = body.connection === 'not_linked' ? 'No reviewed ASR link. Use Integration → Record connections to review both identities.' : body.connection === 'removed_at_source' ? 'This record was removed at ASR. MAPA records and active trips are preserved; review the connection.' : '';
+        } catch (error) {
+            if (!this.isDestroying && !this.isDestroyed && own === this.sequence && this.same(identity, this.identity())) this.message = this.data ? 'Refresh unavailable; previously shown source data may be outdated.' : error.message;
+        } finally { clearTimeout(timeout); }
+    }
+    @action stop() { this.sequence++; this.abort?.abort(); clearInterval(this.timer); window.removeEventListener('mapa-source-refreshed', this.listener); }
+}

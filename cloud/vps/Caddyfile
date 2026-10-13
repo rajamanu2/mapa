@@ -1,0 +1,15 @@
+{
+    email {$MAPA_TLS_EMAIL}
+    admin off
+}
+
+{$MAPA_PUBLIC_HOST} {
+    header Strict-Transport-Security "max-age=31536000"
+    reverse_proxy gateway:8080 {
+        # Never trust a caller-provided Cloudflare address or proxy chain.
+        header_up -CF-Connecting-IP
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto https
+        header_up Host {$MAPA_PUBLIC_HOST}
+    }
+}

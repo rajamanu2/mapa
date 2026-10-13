@@ -1,0 +1,114 @@
+<?php
+/** Included by native.php only inside the isolated QA transaction and fixtures. */
+if(getenv('MAPA_VOICE_QA_ISOLATED')!=='1')throw new RuntimeException('Dedicated isolated voice QA is required.');
+// Existing authorization, mobile account security, duty and dispatch tests remain.
+denied(fn()=>$s->show(voiceRequest(),$liveManual['id']),401);
+denied(fn()=>$s->show(voiceRequest([],$tokens['hospital']),$liveManual['id']),403);
+denied(fn()=>$s->show(voiceRequest([],$tokens['crew']),$liveManual['id']),403);
+$directoryRequest=fn($q='')=>Illuminate\Http\Request::create('/test','GET',['q'=>$q],[],[],['HTTP_AUTHORIZATION'=>'Bearer '.$tokens['admin']]);
+denied(fn()=>$s->show($directoryRequest(),$second['id']),404);
+denied(fn()=>$s->show($directoryRequest(['araku']),$liveManual['id']),422);
+denied(fn()=>$s->show($directoryRequest(str_repeat('a',201)),$liveManual['id']),422);
+$baseMeta=json_encode(['mapa_demo'=>false,'isolated_test'=>true,'asr_import'=>['base_name'=>'Araku','source_context'=>[['mandal'=>'Araku Valley','secretariat'=>'Madala','date_mapped'=>'not_public','phone'=>'PRIVATE-CONTEXT-PHONE','email'=>'PRIVATE-CONTEXT-EMAIL']]]]);
+$directoryBase=row('places',['company_uuid'=>$company,'name'=>'DEMO PHC Araku','location'=>$point,'latitude'=>18.083,'longitude'=>82.669,'meta'=>$baseMeta]);
+$approvedBase=row('places',['company_uuid'=>$company,'name'=>'DEMO Approved Araku Hospital','location'=>$point,'latitude'=>18.083,'longitude'=>82.669,'meta'=>$liveMeta]);
+DB::table('mapa_mobile_bindings')->where('id',$bindings['crew'])->update(['place_uuid'=>$approvedBase]);
+$directoryMeta=json_encode(['mapa_demo'=>false,'isolated_test'=>true,'mapa_ambulance_level'=>'bls','asr_import'=>['source_vehicle_type'=>'108','source_parking_base_place_uuid'=>$directoryBase,'source_context'=>[['mandal'=>'Araku Valley','secretariat'=>'Madala','phone'=>'PRIVATE-CONTEXT-PHONE']]]]);
+DB::table('vehicles')->where('uuid',$vehicle)->update(['name'=>'DEMO Araku BLS Ambulance','plate_number'=>'AP 31 X 4321','type'=>'108','status'=>'available','online'=>1,'meta'=>$directoryMeta]);
+DB::table('drivers')->where('uuid',$driver)->update(['online'=>1,'status'=>'available','meta'=>$liveMeta]);
+DB::table('mapa_mobile_driver_states')->where('driver_uuid',$driver)->update(['recorded_at'=>(int)round(microtime(true)*1000)]);
+DB::table('orders')->where('company_uuid',$company)->update(['status'=>'completed']);
+DB::table('mapa_voice_calls')->where('id',$liveManual['id'])->update(['state'=>'ready','review'=>json_encode($liveReady['call']['review'],JSON_THROW_ON_ERROR)]);
+$directoryVehicleId=DB::table('vehicles')->where('uuid',$vehicle)->value('public_id');
+$inventoryIds=[];
+for($i=0;$i<221;$i++){
+    $uuid=row('vehicles',['company_uuid'=>$company,'name'=>'DEMO Inventory '.str_pad((string)$i,3,'0',STR_PAD_LEFT),'plate_number'=>'DEMO AP31INV'.$i,'type'=>$i%2?'104 MMU':'108','online'=>0,'status'=>'available','meta'=>$directoryMeta]);
+    $inventoryIds[]=DB::table('vehicles')->where('uuid',$uuid)->value('public_id');
+}
+$excludedIds=[];
+foreach([['company_uuid'=>$foreign,'meta'=>$liveMeta],['company_uuid'=>$company,'meta'=>json_encode(['mapa_demo'=>true,'simulated'=>true])],['company_uuid'=>$company,'meta'=>json_encode(['mapa_demo'=>false,'simulated'=>true])],['company_uuid'=>$company,'meta'=>$liveMeta,'deleted_at'=>now()]] as $excluded){
+    $uuid=row('vehicles',[...$excluded,'name'=>'DEMO excluded inventory','online'=>0,'status'=>'available']);$excludedIds[]=DB::table('vehicles')->where('uuid',$uuid)->value('public_id');
+}
+$foreignBase=row('places',['company_uuid'=>$foreign,'name'=>'PRIVATE-FOREIGN-HOSPITAL','location'=>$point,'latitude'=>18.083,'longitude'=>82.669,'meta'=>$baseMeta]);
+$unscopedBaseVehicle=row('vehicles',['company_uuid'=>$company,'name'=>'DEMO Unscoped Base','plate_number'=>'DEMO-SCOPED-BASE','online'=>0,'status'=>'available','meta'=>json_encode(['mapa_demo'=>false,'asr_import'=>['source_parking_base_place_uuid'=>$foreignBase]])]);
+$unscopedBaseId=DB::table('vehicles')->where('uuid',$unscopedBaseVehicle)->value('public_id');
+$beforeCounts=[];foreach(['users','drivers','mapa_mobile_bindings','mapa_mobile_sessions','positions','orders','mapa_voice_calls','mapa_voice_receipts','mapa_voice_audit'] as $table)$beforeCounts[$table]=DB::table($table)->count();
+$sourceDirectory=$s->show(voiceRequest([],$tokens['admin']),$liveManual['id']);
+$sourceRow=array_values(array_filter($sourceDirectory['unavailable'],fn($v)=>$v['vehicle_id']===$directoryVehicleId))[0];
+check($sourceDirectory['inventory_total']===223&&$sourceDirectory['candidates']===[]&&count($sourceDirectory['unavailable'])===223&&$sourceRow['code']==='source_owned','imported source ambulance stays visible but source ownership blocks native dispatch even with eligible linked crew');
+check($sourceRow['hospital_name']==='DEMO Approved Araku Hospital'&&$sourceRow['base_name']==='Araku'&&$sourceRow['mandal']==='Araku Valley'&&$sourceRow['secretariat']==='Madala','source-owned inventory retains approved base and safe source context without becoming eligible');
+$sourceMatching=$s->show($directoryRequest('Araku AP31 X4321'),$liveManual['id']);
+check($sourceMatching['matching_total']===1&&$sourceMatching['candidates']===[]&&$sourceMatching['unavailable'][0]['code']==='source_owned','area and registration search cannot bypass source ownership');
+denied(fn()=>$s->mutate(voiceRequest(['action_id'=>(string)Str::uuid(),'expected_revision'=>$sourceDirectory['call']['revision'],'confirmed'=>true,'driver_id'=>'driver_mapa_voice_demo_01'],$tokens['admin']),'dispatch',$liveManual['id']),409);
+// The remaining eligibility tests need a native-managed fixture. Keep imported
+// inventory rows intact; do not relax the production source-ownership guard.
+$nativeDirectoryMeta=json_encode(['mapa_demo'=>false,'isolated_test'=>true,'mapa_ambulance_level'=>'bls','hospital_name'=>'DEMO Native Araku Base','mandal'=>'Araku Valley','secretariat'=>'Madala']);
+DB::table('vehicles')->where('uuid',$vehicle)->update(['meta'=>$nativeDirectoryMeta]);
+$directory=$s->show(voiceRequest([],$tokens['admin']),$liveManual['id']);
+check($directory['inventory_total']===223 && $directory['matching_total']===223,'complete company inventory exceeds previous 200-driver cap without truncation');
+check(count($directory['candidates'])===1 && count($directory['unavailable'])===222,'only real eligible linked crew becomes a candidate; offline inventory stays visible');
+$eligible=$directory['candidates'][0];
+check($eligible['vehicle_id']===$directoryVehicleId && $eligible['vehicle_registration']==='AP 31 X 4321' && $eligible['vehicle_type']==='108','native registration and native vehicle type preserved');
+check($eligible['vehicle_online']===true&&$eligible['crew_on_duty']===true&&$eligible['crew_link_status']==='linked'&&$eligible['crew_mobile_bound']===true&&$eligible['crew_gps_status']==='fresh','directory reports ambulance duty, crew mapping, mobile binding and verified phone fix separately');
+check($eligible['hospital_name']==='DEMO Approved Araku Hospital' && $eligible['base_name']==='DEMO Approved Araku Hospital','native-managed candidate uses its approved native base');
+check($eligible['hospital_place_id']===DB::table('places')->where('uuid',$approvedBase)->value('public_id'),'dispatch roster uses exact reviewed hospital identity rather than an area-name guess');
+check($eligible['mandal']==='Araku Valley' && $eligible['secretariat']==='Madala' && !$eligible['simulated'],'native context and correct call environment added to candidate');
+$all=[...$directory['candidates'],...$directory['unavailable']];$allIds=array_column($all,'vehicle_id');
+check(count(array_unique($allIds))===count($allIds),'one directory row per native vehicle');
+check(array_diff($inventoryIds,$allIds)===[] && array_intersect($excludedIds,$allIds)===[],'every scoped real inventory row returned; foreign deleted DEMO and simulated rows excluded');
+check(count(array_filter($all,fn($v)=>$v['simulated']!==false))===0,'all candidate and unavailable rows use the call environment');
+$unlinked=array_values(array_filter($directory['unavailable'],fn($v)=>$v['vehicle_id']===$inventoryIds[220]))[0];
+check($unlinked['id']===null && $unlinked['driver_id']===null && $unlinked['code']==='source_owned'&&$unlinked['source_owned']===true,'unlinked imported ambulance stays visible but reports ASR ownership before asking for crew mapping');
+check($unlinked['vehicle_online']===false&&$unlinked['crew_on_duty']===null&&$unlinked['crew_link_status']==='unlinked'&&$unlinked['crew_mobile_bound']===false&&$unlinked['crew_gps_status']==='missing','unlinked offline ambulance stays visible without invented crew location');
+check($unlinked['hospital_place_id']===null,'unlinked source parking base cannot be mistaken for a crew hospital assignment');
+DB::table('vehicles')->where('public_id',$inventoryIds[220])->update(['meta'=>$nativeDirectoryMeta]);
+$nativeUnlinked=array_values(array_filter($s->show(voiceRequest([],$tokens['admin']),$liveManual['id'])['unavailable'],fn($v)=>$v['vehicle_id']===$inventoryIds[220]))[0];
+check($nativeUnlinked['code']==='crew_unlinked'&&$nativeUnlinked['source_owned']===false,'MAPA-owned unlinked ambulance still asks for reviewed crew mapping');
+DB::table('vehicles')->where('public_id',$inventoryIds[220])->update(['meta'=>$directoryMeta]);
+check(!array_key_exists('distance_km',$unlinked) && !array_key_exists('latitude',$unlinked) && DB::table('vehicles')->where('public_id',$inventoryIds[220])->whereNull('location')->exists(),'source hospital coordinates never become live vehicle GPS or distance');
+$hiddenBase=array_values(array_filter($all,fn($v)=>$v['vehicle_id']===$unscopedBaseId))[0];
+check($hiddenBase['hospital_name']==='' && $hiddenBase['base_name']==='' && !str_contains(json_encode($all),'PRIVATE-FOREIGN-HOSPITAL'),'foreign referenced base cannot leak location context');
+check(!str_contains(json_encode($all),'PRIVATE-CONTEXT') && !str_contains(json_encode($all),'not_public'),'only safe source mandal and secretariat context exposed');
+$matching=$s->show($directoryRequest('Araku AP31 X4321'),$liveManual['id']);
+check($matching['inventory_total']===223 && $matching['matching_total']===1 && $matching['candidates'][0]['vehicle_id']===$directoryVehicleId,'server search dynamically combines area and registration regardless of separators');
+DB::table('drivers')->where('uuid',$driver)->update(['meta'=>json_encode(['mapa_demo'=>true,'simulated'=>true,'mandal'=>'PRIVATE-MIXED-DRIVER-AREA'])]);
+$mixed=$s->show(voiceRequest([],$tokens['admin']),$liveManual['id']);
+$mixedRow=array_values(array_filter($mixed['unavailable'],fn($v)=>$v['vehicle_id']===$directoryVehicleId))[0];
+check($mixed['candidates']===[] && $mixedRow['code']==='environment' && $mixedRow['id']===null && $mixedRow['driver_id']===null && $mixedRow['name']===null,'cross-environment driver identity is never serialized into a live directory');
+check($mixedRow['hospital_name']==='DEMO Native Araku Base' && !str_contains(json_encode($mixedRow),'PRIVATE-MIXED-DRIVER-AREA') && !str_contains(json_encode($mixedRow),'Approved Araku'),'wrong-environment driver context and approved driver base are hidden while native vehicle area stays visible');
+DB::table('drivers')->where('uuid',$driver)->update(['meta'=>$liveMeta]);
+DB::table('vehicles')->where('uuid',$unscopedBaseVehicle)->update(['meta'=>json_encode(['mapa_demo'=>false,'asr_import'=>['source_parking_base_place_uuid'=>['PRIVATE-MALFORMED-ID'],'source_context'=>[['mandal'=>['PRIVATE-MALFORMED-AREA']]]]])]);
+$malformed=$s->show(voiceRequest([],$tokens['admin']),$liveManual['id']);
+$malformedRow=array_values(array_filter($malformed['unavailable'],fn($v)=>$v['vehicle_id']===$unscopedBaseId))[0];
+check($malformedRow['hospital_name']==='' && $malformedRow['mandal']==='' && $malformed['inventory_total']===223,'malformed stored location IDs/context cannot crash or leak private metadata');
+DB::table('vehicles')->where('uuid',$unscopedBaseVehicle)->update(['meta'=>json_encode(['mapa_demo'=>false,'asr_import'=>['source_parking_base_place_uuid'=>$foreignBase]])]);
+$none=$s->show($directoryRequest('no-such-area'),$liveManual['id']);check($none['matching_total']===0 && $none['inventory_total']===223,'unmatched area returns no matches without hiding inventory count');
+$dynamic=$s->show($directoryRequest('Madala'),$liveManual['id']);check($dynamic['matching_total']===222,'secretariat comes entirely from current database context');
+foreach($beforeCounts as $table=>$count)check(DB::table($table)->count()===$count,'directory reads never write '.$table);
+DB::table('drivers')->where('uuid',$driver)->update(['online'=>0]);$off=$s->show(voiceRequest([],$tokens['admin']),$liveManual['id']);
+check($off['candidates']===[] && count($off['unavailable'])===223 && array_values(array_filter($off['unavailable'],fn($v)=>$v['vehicle_id']===$directoryVehicleId))[0]['code']==='off_duty','offline linked vehicle remains visible but dispatch guard stays closed');
+$offRow=array_values(array_filter($off['unavailable'],fn($v)=>$v['vehicle_id']===$directoryVehicleId))[0];
+check($offRow['vehicle_online']===true&&$offRow['crew_on_duty']===false&&$offRow['crew_gps_status']==='fresh','fresh GPS and online ambulance do not disguise off-duty crew');
+denied(fn()=>$s->mutate(voiceRequest(['action_id'=>(string)Str::uuid(),'expected_revision'=>$off['call']['revision'],'confirmed'=>true,'driver_id'=>'driver_mapa_voice_demo_01'],$tokens['admin']),'dispatch',$liveManual['id']),409);
+DB::table('drivers')->where('uuid',$driver)->update(['online'=>1]);
+$duplicateDriver=row('drivers',['company_uuid'=>$company,'user_uuid'=>$users['crew'],'vehicle_uuid'=>$vehicle,'online'=>0,'status'=>'available','location'=>$point,'latitude'=>18.083,'longitude'=>82.669,'meta'=>$liveMeta]);
+$duplicate=$s->show(voiceRequest([],$tokens['admin']),$liveManual['id']);check($duplicate['candidates']===[] && array_values(array_filter($duplicate['unavailable'],fn($v)=>$v['vehicle_id']===$directoryVehicleId))[0]['code']==='assignment','duplicate crew mapping cannot become eligible or duplicate vehicle rows');
+$ambiguous=array_values(array_filter($duplicate['unavailable'],fn($v)=>$v['vehicle_id']===$directoryVehicleId))[0];
+check($ambiguous['crew_link_status']==='ambiguous'&&$ambiguous['crew_on_duty']===null,'ambiguous crew assignment never guesses a driver status');
+DB::table('drivers')->where('uuid',$duplicateDriver)->delete();
+// Current native schema has no reciprocal field; explicitly probe the retained
+// legacy object guard without manufacturing a native production column.
+$probe=new class extends App\MapaVoice\VoiceService {public function inspect($d,$v,$c,$r){return $this->inspectEligibility($d,$v,$c,$r);}};
+$legacyVehicle=DB::table('vehicles')->where('uuid',$vehicle)->first();$legacyVehicle->driver_uuid=(string)Str::uuid();
+$nativeDriver=DB::table('drivers')->where('uuid',$driver)->first();$nativeCall=DB::table('mapa_voice_calls')->where('id',$liveManual['id'])->first();
+check($probe->inspect($nativeDriver,$legacyVehicle,$nativeCall,$liveReady['call']['review'])['code']==='assignment','legacy reciprocal crew mismatch still fails unchanged eligibility guard');
+DB::table('mapa_voice_calls')->where('id',$liveManual['id'])->update(['state'=>'needs_review']);
+$draftDirectory=$s->show(voiceRequest([],$tokens['admin']),$liveManual['id']);check($draftDirectory['candidates']===[] && count($draftDirectory['unavailable'])===223 && $draftDirectory['unavailable'][0]['code']==='review_required','full inventory visible before review without premature eligibility');
+DB::table('mapa_voice_calls')->where('id',$liveManual['id'])->update(['state'=>'dispatched']);
+$closedDirectory=$s->show(voiceRequest([],$tokens['admin']),$liveManual['id']);check($closedDirectory['candidates']===[] && $closedDirectory['unavailable'][0]['code']==='call_resolved','resolved call never returns dispatch candidates');
+$demoCall=DB::table('mapa_voice_calls')->where('company_uuid',$company)->where('demo',true)->first();
+$demoRows=(new App\MapaVoice\AmbulanceDirectory)->forCall($demoCall,fn()=>['candidate'=>null,'code'=>'isolated','message'=>'DEMO isolated']);
+check($demoRows['inventory_total']===1 && $demoRows['unavailable'][0]['simulated']===true,'DEMO inventory remains separate and explicitly simulated');
+check(App\MapaVoice\AmbulanceDirectory::matches(['search_text'=>'Aráku AP 31 X 4321'],'araku ap31x4321'),'accent normalized registration and area search');
+check(!App\MapaVoice\AmbulanceDirectory::matches(['search_text'=>'Paderu AP 31 X 4321'],'araku'),'missing place token cannot match a registration');
+check(App\MapaVoice\AmbulanceDirectory::text(['email'=>'PRIVATE'])==='' && App\MapaVoice\AmbulanceDirectory::text("Araku\nValley")==='Araku Valley','malformed or control-character metadata stays safe plain text');

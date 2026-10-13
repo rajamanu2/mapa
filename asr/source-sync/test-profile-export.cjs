@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const {csv,csvCell}=require('../../console/public/mapa-integration-view.js');
+let checks=0;const check=(value)=>{assert.ok(value);checks++;};
+check(csv([])==='');
+check(csvCell('DEMO "quoted"')==='"DEMO ""quoted"""');
+check(csvCell('=WEBSERVICE("DEMO")').startsWith('"\''));
+for(const value of ['+1','-1','@DEMO','  =DEMO'])check(csvCell(value).startsWith('"\''));
+const result=csv([{name:'DEMO driver',expected_revision:'private revision',meta:{mapa_demo:true},id:1}]);
+check(!result.includes('private revision')&&!result.includes('meta'));
+check(result.includes('DEMO driver')&&result.includes('"id"'));
+check(csvCell('DEMO, row').includes('DEMO, row'));
+console.log('PROFILE EXPORT PASS '+checks+' checks');

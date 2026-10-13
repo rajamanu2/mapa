@@ -1,0 +1,15 @@
+FROM node:22-alpine@sha256:b6f26b36c8ff49624cfdac716b8ea1138d606df02586a77d364bb5536a634f85 AS dependencies
+WORKDIR /console
+RUN apk add --no-cache git python3 make g++ && npm install -g pnpm@11.0.9
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
+FROM dependencies AS prepared
+COPY . .
+ENV NODE_ENV=production JOBS=1 NODE_OPTIONS=--max-old-space-size=3072
+ENV DISABLE_RUNTIME_CONFIG=false API_HOST=/api API_NAMESPACE=int/v1
+RUN node scripts/mapa-customize.mjs && node scripts/install-mapa-caller-phone.mjs && node scripts/install-mapa-optional-sections.mjs && node scripts/install-mapa-source-panels.mjs && node scripts/install-mapa-production-guards.mjs && node scripts/test-production-guards.mjs
+FROM prepared AS build
+RUN pnpm exec ember build --environment=production --output-path=dist
+FROM scratch AS artifact
+COPY --from=build /console/dist /console
+

@@ -1,0 +1,80 @@
+# Client demo accepts reads and native session login/logout only.
+map "$request_method:$uri" $mapa_write_denied {
+    default 1;
+    ~^(GET|HEAD|OPTIONS): 0;
+    ~^POST:/api/int/v1/auth/(login|logout)$ 0;
+}
+limit_req_zone $http_cf_connecting_ip zone=preview_login:10m rate=10r/m;
+map $request_uri $mapa_api_uri {
+    ~^/api(?<api_remainder>/.*)$ $api_remainder;
+    default "";
+}
+server {
+    listen 8080 default_server;
+    server_name ${MAPA_PUBLIC_HOST};
+    set $mapa_public_host "${MAPA_PUBLIC_HOST}";
+    root /usr/share/nginx/html;
+    server_tokens off;
+    access_log off;
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    client_max_body_size 10m;
+    add_header X-Content-Type-Options nosniff always;
+    # Map tiles need the public application origin; never send paths or queries.
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header Cache-Control "no-store" always;
+
+    add_header X-Robots-Tag "noindex, nofollow, noarchive" always;
+    if ($mapa_write_denied) { return 405; }
+    if ($http_x_http_method_override != "") { return 405; }
+    location = /healthz { return 200 "MAPA gateway ready\n"; }
+
+    # Public registration is unnecessary for this migrated, already-onboarded demo.
+    location ~* ^/api/int/v1/(auth/sign-up|onboard/(?!should-onboard(?:/|$))) { return 404; }
+    # The bridge sends events directly over the private Docker network.
+    location ~* ^/(api/)?mapa/voice/v1/bridge(?:/|$) { return 404; }
+    location ~* ^/(?:api/)?(?:_debugbar|_ignition|telescope|horizon)(?:/|$) { return 404; }
+    location ~ (^|/)\. { return 404; }
+    location ~* \.(?:env|sql|sqlite|sqlite3|log|bak)(?:$|/) { return 404; }
+    location ~* ^/(?:private|raw-console|backups)(?:/|$) { return 404; }
+
+    # Default upstream SocketCluster has no tenant subscription authorization.
+    # This gate cannot be opened using a browser request or an environment flag.
+    location ^~ /socketcluster { return 503; }
+    # Telephone media stays off until Exotel number and human fallback are verified.
+    location ^~ /media { return 404; }
+
+    location = /api/int/v1/auth/login {
+        limit_req zone=preview_login burst=5 nodelay;
+        limit_req_status 429;
+        set $mapa_api http://mapa-preview-api:8000;
+        proxy_pass $mapa_api/int/v1/auth/login;
+        include /etc/nginx/mapa-proxy.conf;
+    }
+    location ~* ^/api/int/v1/(?:api-credentials|integrated-vendors|webhooks|api-events|exports)(?:/|$) { return 404; }
+    location /api/ {
+        set $mapa_api http://mapa-preview-api:8000;
+        proxy_pass $mapa_api$mapa_api_uri;
+        include /etc/nginx/mapa-proxy.conf;
+    }
+    location /mapa/mobile/v1/ {
+        client_max_body_size 32k;
+        set $mapa_api http://mapa-preview-api:8000;
+        proxy_pass $mapa_api$request_uri;
+        include /etc/nginx/mapa-proxy.conf;
+    }
+    location /mapa/voice/v1/ {
+        client_max_body_size 128k;
+        set $mapa_api http://mapa-preview-api:8000;
+        proxy_pass $mapa_api$request_uri;
+        include /etc/nginx/mapa-proxy.conf;
+    }
+    location = /fleetbase.config.json {
+        default_type application/json;
+        try_files $uri =404;
+    }
+    location / { try_files $uri $uri/ /index.html =404; }
+}
+
+
+

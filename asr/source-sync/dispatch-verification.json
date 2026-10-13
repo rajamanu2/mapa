@@ -1,0 +1,26 @@
+{
+  "verified_at_utc": "2026-10-05T22:58:23.1895489Z",
+  "scope": "local isolated synthetic verification only",
+  "source_dispatch_checks": 75,
+  "native_saga_and_voice_hook_checks": 36,
+  "source_transport": "loopback PHP HTTP with restricted disposable MySQL account",
+  "native_transport": "fixture remote responses with actual Laravel/MySQL intent and outbox",
+  "production_deployed": false,
+  "coordination_enabled": false,
+  "resources_cleaned": true,
+  "hashes": {
+    "fleetbase/asr/source-sync/SourceDispatchCommands.php": "72b214f05ccaec385780eb2144195cb58c3e3aa210aa0f83bda70334f98d4601",
+    "fleetbase/asr/source-sync/source-dispatch-command.php": "be177f4fdb8b312ba727025e4fbd0623ce3dc8d38d224217610ea9f993692b74",
+    "fleetbase/asr/source-sync/SourceDispatchCoordinator.php": "837af577fa988978b388b37e48edf551fd3e722578f56a6360802e14387013f6",
+    "fleetbase/asr/source-sync/SourceCoordinationPolicy.php": "d60b1db9086a1044f3c8ff0858a9810182b3abfa1c42e4d244f06f9dff360fd3",
+    "fleetbase/asr/mobile/SourceDispatchCommands.php": "72b214f05ccaec385780eb2144195cb58c3e3aa210aa0f83bda70334f98d4601",
+    "fleetbase/asr/mobile/SourceDispatchClient.php": "6803a78da71ee38d833f44813e2b5d1555d93539671739106e9220d490a34bb0",
+    "fleetbase/asr/mobile/SourceDispatchSaga.php": "67ff33fd111e3d02ab9dc5456ecc01a506733ca4641e6346da3370049806b75f",
+    "fleetbase/asr/mobile/SourceDispatchDrainCommand.php": "da2c5a451a723261f1aec4832c15badb6c81bf7756d52b3aacf93c6c9c617c85",
+    "fleetbase/asr/mobile/migrations/2026_10_06_000020_create_source_dispatch_outbox.php": "2cb4fe2e753ac2c433a4992f1bc5f692415dc0cb9829b8445e3b4b7fd15a4d09",
+    "fleetbase/asr/voice/VoiceService.php": "8cab7e56af96a3a217968b7a9c5b0d7e1d04bfdf9244a71d9c40a3ee15207bcd",
+    "fleetbase/asr/mobile/TripWorkflow.php": "cbef285271e0c4594fbe811ce84268429aa96f76a3605d372d9817ba5272c23e",
+    "fleetbase/asr/source-sync/dispatch-test-results.txt": "112aeb32f65d5fdb7d46e4d247b97c2399ac1a6b7c8b2f5950fe1c81e27174fa",
+    "fleetbase/asr/mobile/tests/source-dispatch-saga-result.txt": "f561c9d12d51d24328fca033ae3d1174a9e3c74ac50c1d17c468694c2a473b7f"
+  }
+}

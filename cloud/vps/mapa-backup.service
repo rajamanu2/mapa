@@ -1,0 +1,13 @@
+[Unit]
+Description=MAPA encrypted off-server backup
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/mapa-staging/release
+EnvironmentFile=/opt/mapa-staging/release/private/backup.env
+ExecStart=/bin/sh /opt/mapa-staging/release/backup.sh
+TimeoutStartSec=2h
+UMask=0077

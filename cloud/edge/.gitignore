@@ -1,0 +1,8 @@
+node_modules/
+.pnpm-store/
+.wrangler/
+.validation-build/
+wrangler.jsonc
+.dev.vars*
+.env*
+!.env.example

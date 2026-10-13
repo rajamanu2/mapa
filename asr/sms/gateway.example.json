@@ -1,0 +1,14 @@
+{
+  "enabled": false,
+  "bind": "127.0.0.1",
+  "port": 9443,
+  "tracking_origin": "https://app.itda.asrhealth.in",
+  "token": "",
+  "ledger": "/var/lib/mapa-sms/ledger.sqlite",
+  "inject_binary": "/usr/bin/gammu-smsd-inject",
+  "smsd_binary": "/usr/bin/gammu-smsd",
+  "smsd_config": "/etc/mapa-sms/gammu-smsdrc",
+  "tls_cert": "/etc/mapa-sms/server.crt",
+  "tls_key": "/etc/mapa-sms/server.key",
+  "client_ca": "/etc/mapa-sms/client-ca.crt"
+}

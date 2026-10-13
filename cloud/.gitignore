@@ -1,0 +1,10 @@
+.env
+private/
+raw-console/
+cloud-console/
+*.tar
+*.sql
+*.sqlite*
+*.tgz
+node_modules/
+backup-*/

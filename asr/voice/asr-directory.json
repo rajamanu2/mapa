@@ -1,0 +1,26 @@
+{
+  "schema": "mapa-asr-address-directory-v1",
+  "checked_at": "2026-09-19",
+  "notice": "Selected public place-name and locality facts checked against ASR District Administration. No coordinates are supplied. This is not a complete district or hospital register. Confirm the exact entrance with the caller.",
+  "places": [
+    {"id":"itda-paderu","name":"ITDA Office, Paderu","address":"ITDA Office, Paderu, Alluri Sitharama Raju district","aliases":["ITDA","ITDA Paderu","ITDA office","Integrated Tribal Development Agency Paderu","ఐటీడీఏ పాడేరు"],"source_url":"https://allurisitharamaraju.ap.gov.in/about-district/whos-who/"},
+    {"id":"district-hospital-paderu","name":"District Hospital, Paderu","address":"District Hospital, Paderu, Alluri Sitharama Raju district","aliases":["DH Paderu","District Hospital Paderu","Paderu hospital","పాడేరు ఆసుపత్రి"],"source_url":"https://allurisitharamaraju.ap.gov.in/health/"},
+    {"id":"area-hospital-araku","name":"Area Hospital, Araku","address":"Area Hospital, Araku, Alluri Sitharama Raju district","aliases":["AH Araku","Araku hospital","Area Hospital Araku Valley","అరకు ఆసుపత్రి"],"source_url":"https://allurisitharamaraju.ap.gov.in/health/"},
+    {"id":"chc-chintapalli","name":"Community Health Centre, Chintapalli","address":"Community Health Centre, Chintapalli, Alluri Sitharama Raju district","aliases":["CHC Chintapalli","Chinthapalli hospital","Chintapalle hospital","చింతపల్లి ఆసుపత్రి"],"source_url":"https://allurisitharamaraju.ap.gov.in/health/"},
+    {"id":"chc-munchingaput","name":"Community Health Centre, Munchingaput","address":"Community Health Centre, Munchingaput, Alluri Sitharama Raju district","aliases":["CHC Munchingaput","Munchingputtu hospital","Munchingi Puttu hospital","Munchangiputtu hospital","ముంచంగిపుట్టు ఆసుపత్రి"],"source_url":"https://allurisitharamaraju.ap.gov.in/health/"}
+  ],
+  "mandal_source": "https://allurisitharamaraju.ap.gov.in/commercial-taxes-department/",
+  "mandal_aliases": {
+    "12682030":["Paderu","పాడేరు"],
+    "12682027":["Araku Valley","Araku","అరకు"],
+    "12682028":["Ananthagiri","Anantagiri","అనంతగిరి"],
+    "12682026":["Dumbriguda","Dumbiriguda","డుంబ్రిగూడ"],
+    "12682029":["Hukumpeta","Hukum Peta","హుకుంపేట"],
+    "12682025":["Peda Bayalu","Pedabayalu","Peda Bayalu mandal","పెదబయలు"],
+    "12684230":["Munchingi Puttu","Munchingputtu","Munchangiputtu","Munchingaput","ముంచంగిపుట్టు"],
+    "12682031":["G Madugula","G. Madugula","G.Madugula","Gangaraju Madugula","Ganga Raju Madugula","జి మాడుగుల"],
+    "12682032":["Chintapalli","Chinthapalli","Chintapalle","Chinthapalle","చింతపల్లి"],
+    "12682033":["Gudem Kotha Veedhi","G K Veedhi","G.K.Veedhi","GK Veedhi","GK Veedhi mandal","గూడెం కొత్తవీధి"],
+    "12682034":["Koyyuru","Koyyur","కొయ్యూరు"]
+  }
+}

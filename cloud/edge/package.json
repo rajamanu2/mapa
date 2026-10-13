@@ -1,0 +1,17 @@
+{
+  "name": "mapa-cloud-edge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "types": "wrangler types --include-runtime=false --config wrangler.example.jsonc",
+    "dry-run": "wrangler deploy --dry-run --config wrangler.example.jsonc --outdir .validation-build"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260917.1",
+    "wrangler": "4.134.0",
+    "typescript": "~5.9.3"
+  }
+}

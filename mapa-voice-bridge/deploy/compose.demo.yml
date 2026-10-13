@@ -1,0 +1,59 @@
+# Optional independent project. No service runs without an explicit profile
+# or service target. This file never changes the main MAPA compose project.
+name: mapa-voice-demo-edge
+services:
+  voice-edge:
+    image: ${MAPA_VOICE_EDGE_IMAGE:-nginx:1.31.6-alpine}
+    profiles: [local-edge, public-demo]
+    entrypoint: [nginx]
+    command: [-c, /etc/nginx/mapa-edge.conf, -g, "daemon off;"]
+    user: "101:101"
+    restart: "no"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 64m
+    cpus: 0.5
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=8m,mode=1777"]
+    ports: ["127.0.0.1:${MAPA_VOICE_EDGE_PORT:-8793}:8080"]
+    volumes:
+      - type: bind
+        source: ./nginx.conf
+        target: /etc/nginx/mapa-edge.conf
+        read_only: true
+      - type: bind
+        source: ${MAPA_VOICE_HTPASSWD_FILE:?Prepare a private MAPA stream htpasswd file first}
+        target: /run/mapa-auth/voice.htpasswd
+        read_only: true
+        bind:
+          create_host_path: false
+    networks: [edge_front, mapa_native]
+
+  quick-tunnel:
+    image: cloudflare/cloudflared:2026.9.1
+    profiles: [public-demo]
+    command: [tunnel, --no-autoupdate, --loglevel, info, --url, "http://voice-edge:8080"]
+    depends_on: [voice-edge]
+    restart: "no"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 256m
+    cpus: 1.0
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=8m,mode=1777"]
+    # The connector cannot address the API, console or database by native
+    # service name: only the tightly filtered edge joins both networks.
+    networks: [edge_front]
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "2"
+
+networks:
+  edge_front: {}
+  mapa_native:
+    external: true
+    name: ${MAPA_DOCKER_NETWORK:-asr-fleetbase-pilot_default}

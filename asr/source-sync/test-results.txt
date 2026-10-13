@@ -1,0 +1,168 @@
+PASS fresh empty QA schema
+PASS export leaves every source row unchanged
+PASS shared phone does not merge driver identities
+PASS patient and deceased counts remain separate
+PASS patient names and contacts excluded
+PASS daily allocation identities deduplicated
+PASS read-only account cannot alter original drivers
+PASS signed GET accepted
+PASS reject HTTP_X_MAPA_SIGNATURE
+PASS reject HTTP_X_MAPA_TIMESTAMP
+PASS reject HTTP_X_MAPA_NONCE
+PASS reject REQUEST_METHOD
+PASS reject QUERY_STRING
+PASS reject weak configuration
+PASS signed response accepted
+PASS modified response rejected
+PASS response cannot be replayed to another nonce
+PASS reject snapshot company_id
+PASS reject snapshot complete
+PASS reject snapshot source
+PASS reject snapshot generated_at
+PASS reject duplicate IDs
+PASS reject partial dataset
+PASS reject extra fields
+PASS reject malformed ID
+PASS first sync records additions without native writes
+PASS out-of-order receipt rejected
+PASS failed sync preserves previous state
+PASS source transfer recorded as review change
+PASS driver transfer does not move ambulance
+PASS source deletion recorded without deleting native account
+PASS attendance matches PHC session rule including off-road
+PASS before joining and future days excluded
+PASS other PHC is not marked present
+PASS invalid attendance month rejected
+PASS HTTP anonymous export denied
+PASS HTTP authorized export succeeds
+PASS HTTP response verifies end-to-end
+PASS attendance date uses explicitly configured source PHP timezone
+PASS HTTP export preserves source records
+PASS HTTP frequent reads are throttled
+PASS no source migrations or new application tables
+PASS receiver missing config rejected
+PASS receiver malformed config rejected
+PASS receiver rejects enabled
+PASS receiver rejects url
+PASS receiver rejects secret
+PASS receiver rejects state_directory
+PASS receiver public state directory rejected
+PASS receiver public configuration file rejected
+PASS receiver expected-directory mismatch rejected
+PASS invalid receiver config never reaches transport
+PASS receiver signs fixed-origin requests
+PASS receiver persists verified snapshot
+PASS receiver cooldown prevents repeated transport
+PASS receiver rejects tamper response
+PASS receiver tamper keeps previous snapshot
+PASS receiver rejects html response
+PASS receiver html keeps previous snapshot
+PASS receiver rejects status response
+PASS receiver status keeps previous snapshot
+PASS receiver rejects offline response
+PASS receiver offline keeps previous snapshot
+PASS receiver in-flight lock prevents concurrent fetch and state changes
+PASS v2 missing operational schema fails closed
+PASS v1 retained alongside explicit v2
+PASS unknown source version rejected
+PASS expanded export leaves all operational and patient source rows unchanged
+PASS v2 version timezone and explicit capabilities
+PASS v2 CAD and trip summaries exclude patient caller address and free text
+PASS administrative hierarchy and base coordinate preserved
+PASS closed session and closing odometer exported
+PASS repair state place estimate and components retained
+PASS source owned incident dispatch and trip keys preserved
+PASS open and completed source trip row activity preserved without invented stages
+PASS snapshot never claims reservation or patient record access
+PASS default export remains original v1 after schema expansion
+PASS v1 row fields remain byte-contract compatible
+PASS legacy profile revision stable for expanded v2 read row
+PASS receiver verifies signed v2 snapshot
+PASS v2 rejects partial cad_incidents
+PASS v2 rejects partial cad_dispatches
+PASS v2 rejects partial cad_status_updates
+PASS v2 rejects partial trip_activity
+PASS v2 rejects partial repair_items
+PASS v2 rejects invalid capabilities
+PASS v2 rejects invalid source_timezone
+PASS v2 rejects invalid contract
+PASS v2 rejects unallowlisted caller field
+PASS v2 rejects duplicate source dispatch identity
+PASS v2 rejects invalid base latitude
+PASS v2 rejects invalid base longitude
+PASS v2 unknown closure fails closed
+PASS v2 invalid repair amount fails closed
+PASS state upgrades from v1 to v2 atomically
+PASS v2 incomplete source schema does not promote partial snapshot
+PASS v2 schema failure preserves previous verified snapshot
+PASS HTTP exporter opt-in and signed receiver support v2 end to end
+PASS v3 exports exact geographic hierarchy
+PASS geographic extension does not export patient or caller records
+PASS orphan village rejected
+PASS orphan secretariat rejected
+PASS signed receiver accepts v3 geography
+SOURCE SYNC PASS 103 checks
+
+PASS body-bound signed POST accepted
+PASS modified signed body denied
+PASS expired signature denied
+PASS reject header REQUEST_METHOD
+PASS reject header QUERY_STRING
+PASS reject header CONTENT_TYPE
+PASS reject header HTTP_X_MAPA_NONCE
+PASS weak command secret denied
+PASS response signature binds exact response
+PASS source profile updated
+PASS receipt requires authoritative refresh
+PASS same request replay returns committed receipt
+PASS replay creates one audit receipt
+PASS same request different body conflicts
+PASS stale revision conflicts
+PASS rejected command rolls back ledger reservation
+PASS actor revoked even on idempotent retry
+PASS driver PHC transfer succeeds
+PASS shared phone identity is untouched
+PASS driver transfer does not move ambulance
+PASS ambulance PHC transfer succeeds
+PASS institute and PHC mismatch denied
+PASS destination PHC outside actor scope denied
+PASS coordinator fleet category boundary enforced
+PASS current PHC outside scope denied
+PASS module action permission required
+PASS nonexistent destination denied
+PASS invalid record_id denied
+PASS invalid company_id denied
+PASS invalid action denied
+PASS invalid expected_revision denied
+PASS unapproved extra fields denied
+PASS year type checked
+PASS model length bounded
+PASS deleted source record denied
+PASS revision stable across numeric transport types
+PASS unrelated original record change blocks stale edit
+PASS restricted writer rejects DELETE
+PASS restricted writer rejects UPDATE
+PASS restricted writer rejects SELECT
+PASS restricted writer rejects CREATE
+PASS patient data unchanged
+PASS audit contains changed fields only
+PASS audit failure surfaced
+PASS audit failure rolls back source update
+PASS audit failure rolls back idempotency insertion
+PASS master profile cannot alter MAPA-reserved ambulance
+PASS driver transfer cannot alter MAPA reservation
+PASS ambulance transfer cannot alter active original CAD trip
+PASS HTTP unsigned command denied
+PASS HTTP command blocked while coordination disabled
+PASS HTTP command blocked during maintenance
+PASS HTTP command blocked without account schema attestation
+PASS HTTP command blocked on schema drift
+PASS HTTP command blocked without private coordination policy
+PASS HTTP signed source command succeeds
+PASS HTTP receipt signed and nonce-bound
+PASS HTTP receipt bound to command ID
+PASS HTTP retry is idempotent
+PASS HTTP conflict identifies rejected command
+PASS HTTP rejection is signed
+PASS HTTP errors omit credentials
+SOURCE COMMANDS PASS 62 checks

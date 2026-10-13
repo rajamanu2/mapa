@@ -1,0 +1,63 @@
+PASS body-bound signed POST accepted
+PASS modified signed body denied
+PASS expired signature denied
+PASS reject header REQUEST_METHOD
+PASS reject header QUERY_STRING
+PASS reject header CONTENT_TYPE
+PASS reject header HTTP_X_MAPA_NONCE
+PASS weak command secret denied
+PASS response signature binds exact response
+PASS source profile updated
+PASS receipt requires authoritative refresh
+PASS same request replay returns committed receipt
+PASS replay creates one audit receipt
+PASS same request different body conflicts
+PASS stale revision conflicts
+PASS rejected command rolls back ledger reservation
+PASS actor revoked even on idempotent retry
+PASS driver PHC transfer succeeds
+PASS shared phone identity is untouched
+PASS driver transfer does not move ambulance
+PASS ambulance PHC transfer succeeds
+PASS institute and PHC mismatch denied
+PASS destination PHC outside actor scope denied
+PASS coordinator fleet category boundary enforced
+PASS current PHC outside scope denied
+PASS module action permission required
+PASS nonexistent destination denied
+PASS invalid record_id denied
+PASS invalid company_id denied
+PASS invalid action denied
+PASS invalid expected_revision denied
+PASS unapproved extra fields denied
+PASS year type checked
+PASS model length bounded
+PASS deleted source record denied
+PASS revision stable across numeric transport types
+PASS unrelated original record change blocks stale edit
+PASS restricted writer rejects DELETE
+PASS restricted writer rejects UPDATE
+PASS restricted writer rejects SELECT
+PASS restricted writer rejects CREATE
+PASS patient data unchanged
+PASS audit contains changed fields only
+PASS audit failure surfaced
+PASS audit failure rolls back source update
+PASS audit failure rolls back idempotency insertion
+PASS master profile cannot alter MAPA-reserved ambulance
+PASS driver transfer cannot alter MAPA reservation
+PASS ambulance transfer cannot alter active original CAD trip
+PASS HTTP unsigned command denied
+PASS HTTP command blocked while coordination disabled
+PASS HTTP command blocked during maintenance
+PASS HTTP command blocked without account schema attestation
+PASS HTTP command blocked on schema drift
+PASS HTTP command blocked without private coordination policy
+PASS HTTP signed source command succeeds
+PASS HTTP receipt signed and nonce-bound
+PASS HTTP receipt bound to command ID
+PASS HTTP retry is idempotent
+PASS HTTP conflict identifies rejected command
+PASS HTTP rejection is signed
+PASS HTTP errors omit credentials
+SOURCE COMMANDS PASS 62 checks

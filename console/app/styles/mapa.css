@@ -1,0 +1,18 @@
+.mapa-mark{display:inline-flex;align-items:center;justify-content:center;background:#0d9488;color:white;font-weight:800;font-size:12px;border-radius:8px;min-width:48px;height:34px;padding:0 5px}
+.mapa-wordmark{display:inline-flex;align-items:center;gap:12px;font-size:22px}
+.mapa-home{max-width:1240px;margin:0 auto;padding:44px 32px;color:#dce6ec}
+.mapa-eyebrow{font-size:12px;letter-spacing:2px;color:#5eead4;font-weight:700}
+.mapa-home h1{font-size:34px;line-height:1.2;font-weight:700;margin:14px 0}
+.mapa-intro{color:#a5b6c6;font-size:16px}
+.mapa-hero{display:flex;align-items:center;justify-content:space-between;gap:28px;margin:32px 0;padding:30px;border:1px solid #23776f;border-radius:16px;background:linear-gradient(120deg,#103b40,#12222f)}
+.mapa-home h2{font-size:20px;font-weight:650;margin-bottom:10px}.mapa-hero p{max-width:600px;line-height:1.6;color:#b6cbd2}
+.mapa-primary{display:inline-block;background:#5eead4;color:#073531;border-radius:8px;padding:14px 20px;white-space:nowrap;font-weight:700}
+.mapa-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.mapa-grid>a{display:block;border:1px solid #334155;border-radius:12px;padding:24px;background:#16212f}
+.mapa-grid>a:hover,.mapa-grid>a:focus-visible{border-color:#5eead4;outline:2px solid #5eead4;outline-offset:2px}.mapa-grid span{display:block;font-size:11px;letter-spacing:1.5px;color:#5eead4;margin-bottom:18px}.mapa-grid p,.mapa-coverage p{font-size:14px;line-height:1.7;color:#a5b6c6}
+.mapa-coverage{margin-top:30px;border-top:1px solid #334155;padding-top:24px}.mapa-coverage p{margin-top:10px}.mapa-footer{margin-top:30px;font-size:12px;color:#8095a7}
+[data-theme="light"] .mapa-home{color:#172b3a}[data-theme="light"] .mapa-grid>a{background:#f4faf9}[data-theme="light"] .mapa-grid p,[data-theme="light"] .mapa-coverage p,[data-theme="light"] .mapa-intro{color:#476171}
+@media(max-width:900px){.mapa-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mapa-hero{align-items:flex-start;flex-direction:column}}
+@media(max-width:580px){.mapa-home{padding:26px 18px}.mapa-home h1{font-size:28px}.mapa-grid{grid-template-columns:1fr}.mapa-hero{padding:22px}}
+
+.mapa-home a.mapa-primary{color:#073531}.mapa-home{background:#101827}[data-theme="light"] .mapa-home{background:#fff}
+.mapa-attribution{font-size:12px;color:#9badc1;display:flex;align-items:center;gap:4px;padding:8px}.mapa-attribution strong{color:inherit}.mapa-attribution button{color:#93c5fd}.mapa-attribution button:focus-visible{outline:2px solid #5eead4;outline-offset:3px}

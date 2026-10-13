@@ -1,0 +1,19 @@
+        <InputGroup @name="Caller phone number" @wrapperClass="lg:col-span-2" as |callerPhoneId|>
+            <input
+                id={{callerPhoneId}}
+                class="w-full form-input"
+                type="tel"
+                value={{this.mapaCallerPhone}}
+                placeholder="+91 98765 43210"
+                inputmode="tel"
+                autocomplete="tel"
+                maxlength="40"
+                disabled={{or @resource.meta._index_resource (cannot-write @resource)}}
+                aria-invalid={{if this.mapaCallerPhoneError "true" "false"}}
+                {{on "input" this.setMapaCallerPhone}}
+            />
+            <p class="mt-1 text-sm opacity-80">Optional if unknown. Shared with the assigned crew for coordination. For India, enter 10 digits or +91 and the number.</p>
+            {{#if this.mapaCallerPhoneError}}
+                <p class="mt-1 text-sm text-red-600 dark:text-red-300" role="alert">{{this.mapaCallerPhoneError}}</p>
+            {{/if}}
+        </InputGroup>

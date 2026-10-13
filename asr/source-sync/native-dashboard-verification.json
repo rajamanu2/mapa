@@ -1,0 +1,32 @@
+{
+  "checked_at": "2026-10-05T20:37:40.083176+00:00",
+  "scope": "Local native integration: 547 checks; native component/template checks from unchanged frontend sources. No production deployment or browser visual acceptance.",
+  "native_checks": 547,
+  "native_source_panel_checks": 14,
+  "native_template_compilation": 8,
+  "installer_byte_idempotence": "PASS",
+  "production_bundle_verification": "PASS: final production build and static/emitted-asset verification",
+  "full_two_way_integration_complete": false,
+  "sha256": {
+    "fleetbase/console/scripts/mapa-source-panel.js.txt": "3a08d446a17c45ce4c9fa0ae817abee32477662cad26edb153b12d8b5aff1f6a",
+    "fleetbase/console/scripts/mapa-source-panel.hbs": "0c1193b8e6229d23f2bd63e5f5d2ce97e3ef7804ff488ff0fad841363c284f57",
+    "fleetbase/console/scripts/install-mapa-source-panels.mjs": "09cc31f436d341a435abc1b4d0f2a76ff70d1a9f533d5e197ded3fcee06c527b",
+    "fleetbase/console/scripts/test-mapa-source-panel.mjs": "743a69a3b4ccf5a8c30eaa72ac4761947342ead0bafd31fe896f4fc441a38d8f",
+    "fleetbase/asr/mobile/SourceInventoryController.php": "69714c5e03a284dfa5c04ebc023aeb1cf30d231ff62ff83903b2473e2d0e2778",
+    "fleetbase/asr/mobile/SourceConnections.php": "15a2b1e6079fb369f003a1694484d011fea3374afbc6ebf00781377834620a93",
+    "fleetbase/asr/mobile/SourceConnectionController.php": "51b539201272a14a3b165f6140e7bdc6295f7186910548691f220356d7c6b5f4",
+    "fleetbase/asr/mobile/SourceDashboardController.php": "f81c6147b292b197409c70c22c0f75bb0b968e5d416facad8bba0030e3391db2",
+    "fleetbase/asr/mobile/SourceReconciliationController.php": "4b3e46cf93c90569229a1f78274639908aadd4516849d35b587c45b4fa524cf0",
+    "fleetbase/asr/mobile/tests/dedicated-native-result.txt": "33bdfdfc20e88e0e66de6ad50ee762f79bc083e901a305ba2f54a0c07aedb40f",
+    "fleetbase/asr/mobile/SourceNativeWriteGuard.php": "1a64379d455bbedb44d17f6a999683bd73686412c871a46bb476a49c98b57afb",
+    "fleetbase/asr/mobile/SourceNativeAssignmentObserver.php": "88152406663945620c32166ade29d5682a4101fed697cb8c9749c4fb05acac62",
+    "fleetbase/asr/mobile/tests/source-native-guard-cases.php": "dc01179fc6962a4ae4e7fd92b829634bb10d2bb871668f61d153a158ca276745",
+    "fleetbase/asr/mobile/MobileServiceProvider.php": "765d497208b94b21b5e692557833be2b219de9cd38cd2aa765bd1232604c5d89",
+    "fleetbase/asr/mobile/config.php": "1607bc6f6ef87e6497e4a5348d36d97e19d57aa16aef6af3070be89e9db0c11a"
+  },
+  "current_production_bundle": "PASS: mapa-console-integration-final:20261006; emitted minified asset checks 281",
+  "frontend_upload": "VERIFIED: VPS staging; SHA256 5313437139b76828cf70e40c58a6da1cdf9173e4d83023ba6c6d5fdbbc6593ec",
+  "frontend_live_activation": false,
+  "frontend_activation_gate": "Deploy and verify the matching native integration backend before replacing the live frontend.",
+  "production_deployment_verified": false
+}

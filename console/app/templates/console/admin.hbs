@@ -1,0 +1,9 @@
+{{page-title "Admin"}}
+
+<EmberWormhole @to="sidebar-menu-items">
+    <Layout::Sidebar::Navigator @items={{this.navigationItems}} @searchPlaceholder="Search Admin..." />
+</EmberWormhole>
+
+<Layout::Section::Container>
+    {{outlet}}
+</Layout::Section::Container>

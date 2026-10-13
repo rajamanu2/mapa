@@ -1,0 +1,7 @@
+# Apply the static MAPA Legal view to an already-built console image.
+# A normal console build includes the same assets through public/ and app/index.html.
+ARG MAPA_CONSOLE_BASE=mapa-console-before-legal:2026-09-18
+FROM ${MAPA_CONSOLE_BASE}
+COPY public/mapa-legal.js public/mapa-legal.css public/mapa-notices.html public/mapa-license.txt public/mapa-source.zip /usr/share/nginx/html/
+COPY scripts/install-mapa-legal.sh /tmp/install-mapa-legal.sh
+RUN sh /tmp/install-mapa-legal.sh

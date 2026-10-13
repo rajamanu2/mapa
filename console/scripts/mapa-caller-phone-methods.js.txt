@@ -1,0 +1,35 @@
+    // MAPA caller contact is operator-supplied coordination information.
+    get mapaCallerPhone() {
+        const meta = this.args.resource?.meta ?? {};
+        return Object.prototype.hasOwnProperty.call(meta, 'mapa_caller_phone')
+            ? String(meta.mapa_caller_phone ?? '')
+            : String(meta.mapa_dispatch_review?.callback_number ?? '');
+    }
+
+    mapaNormalizeCallerPhone(value) {
+        const raw = String(value ?? '');
+        if (raw.length > 40 || !/^[0-9+ ()-]*$/.test(raw)) return null;
+        if (!raw.trim()) return '';
+        const compact = raw.trim().replace(/[ ()-]/g, '');
+        if (/^[1-9]\d{9}$/.test(compact)) return '+91' + compact;
+        if (/^91[1-9]\d{9}$/.test(compact)) return '+' + compact;
+        return /^\+[1-9]\d{7,14}$/.test(compact) ? compact : null;
+    }
+
+    get mapaCallerPhoneError() {
+        return this.mapaNormalizeCallerPhone(this.mapaCallerPhone) === null
+            ? 'Enter a valid phone number: 10 digits for India, or + and the country code.'
+            : '';
+    }
+
+    @action setMapaCallerPhone(event) {
+        if (this.args.resource?.meta?._index_resource) return;
+        const raw = String(event?.target?.value ?? '');
+        const normalized = this.mapaNormalizeCallerPhone(raw);
+        const existing = this.args.resource.meta;
+        this.args.resource.set('meta', {
+            ...(existing && typeof existing === 'object' && !Array.isArray(existing) ? existing : {}),
+            // Keep invalid input visible for correction; native save validation rejects it.
+            mapa_caller_phone: normalized === null ? raw : normalized,
+        });
+    }

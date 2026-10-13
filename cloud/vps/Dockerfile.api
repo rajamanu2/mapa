@@ -1,0 +1,8 @@
+ARG MAPA_API_BASE_IMAGE
+FROM ${MAPA_API_BASE_IMAGE}
+WORKDIR /fleetbase/api
+COPY runtime/mobile/ app/MapaMobile/
+COPY runtime/voice/ app/MapaVoice/
+COPY runtime/overrides/ vendor/fleetbase/fleetops-api/server/src/Http/
+COPY runtime/TrustProxies.php app/Http/Middleware/TrustProxies.php
+RUN php artisan config:clear && php artisan route:clear

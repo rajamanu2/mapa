@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Informational URLs only. Operational records and caller capabilities must never appear here.
+     The private portal remains noindex; legal drafts require operator review before publication. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://app.itda.asrhealth.in/privacy/</loc></url>
+  <url><loc>https://app.itda.asrhealth.in/terms/</loc></url>
+  <url><loc>https://app.itda.asrhealth.in/data-rights/</loc></url>
+</urlset>

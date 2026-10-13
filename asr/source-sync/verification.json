@@ -1,0 +1,119 @@
+{
+  "checked_utc": "2026-10-05T16:17:59.893589+00:00",
+  "status": "local_integration_and_three_writeback_actions_tested_live_commissioning_pending",
+  "production_deployed": false,
+  "original_site_files_modified": false,
+  "feature_enabled": false,
+  "transport_tests": {
+    "result": "PASS",
+    "checks": 29
+  },
+  "browser_checks": {
+    "fixture": "Synthetic DEMO only; no live source writes",
+    "passed": [
+      "sidebar integration entry",
+      "overview and Fetch latest data",
+      "ambulance profile edit confirmation and saved-refresh-pending state",
+      "ambulance hospital selection and transfer confirmation",
+      "390px mobile layout"
+    ],
+    "desktop_evidence": "inline-desktop.png",
+    "mobile_evidence": "inline-mobile.png"
+  },
+  "database_tests": {
+    "result": "PASS",
+    "checks": 118,
+    "source_receiver_checks": 64,
+    "source_command_checks": 54,
+    "evidence": "test-results.txt",
+    "scope": "isolated source MySQL, signed HTTP export and controlled write-back"
+  },
+  "deployment_gates": [
+    "confirm production origin/schema/timezone and source query load",
+    "dedicated SELECT-only read account and private HMAC configuration",
+    "explicit source actor/category/PHC grants and column-restricted writer with separate secret",
+    "one-time source command audit/idempotency ledger migration",
+    "approved synthetic source records for live canary and unchanged original website workflow checks",
+    "configure independent receiver schedule; no live sync schedule installed by local code"
+  ],
+  "sha256": {
+    "asr/mobile/SourceSync.php": "1edd656d3e9fbea9d769b277eb92717e1d067b62dee4f909afa86783509eb884",
+    "asr/mobile/SourceReceiver.php": "4eb2934beb381e63baace6ecebca7fd9c1d5354f038728949a2f5caa02c9ef49",
+    "asr/mobile/SourceCommands.php": "d09926ccac7c3ad47f0b4ce361eb5d6298be4058f849531bafe9eb2275ffdcbf",
+    "asr/mobile/SourceInventoryController.php": "47f2c15251e693829bfcf6b9c6b9aff4ec74c0c4f958ffb8120cb85d8072af46",
+    "asr/mobile/SourceCommandClient.php": "abcaeb496fc190670b282182b07348e3e81ab00b1a4f92aeb4995e67d0c53cf1",
+    "asr/mobile/SourceCommandController.php": "3768e78771c34abbc8de6b6f9f348cc7c04d6da15e3f80ff4e88f420fc4e5479",
+    "asr/mobile/MobileServiceProvider.php": "764f56d02b9b85a0957f3a2db0ad7ec066b0549da8526ef90f64735d857fbadc",
+    "asr/mobile/config.php": "953e1f92a0ba79285796ebac59ef38830a09019f4a88d979f3594fc4d956077c",
+    "console/public/mapa-source-native.js": "e2890bdc2679db88cb91254cfffef3659faa3198b5974edff1cc3878518b5e4c",
+    "console/public/mapa-source-native.css": "375dc368a96c1a2206e078ca43c8f121b6ee12176be2858f908bfe0f359e9e15",
+    "console/public/mapa-integration-view.js": "ffdcc38e257e86c4f2ee88e776e4a240cd5b85e25d7b7639147011fc79a7e5dd",
+    "console/public/mapa-integration-editor.js": "ca1644d85547f115079d225fb77a0589d0f5c70437e0e6fefc2a6f78999faa10",
+    "console/app/index.html": "11e720e9eb1e0f7acdf21469e2b257095e2c8bf8e16922bb9c09f3f6b6130673",
+    "asr/source-sync/source-export.php": "f358dd6faaf4ab0ca644c64c9f6541b42c9718887fbb551fdc6f405cc9979e09",
+    "asr/source-sync/source-command.php": "fcca17215166e922a2a4f7723d74450bc081da9ffdea63e9c17b36ebaa1996cb",
+    "asr/source-sync/sync-once.php": "779fb5ba4b8131ec78bf1e714ef8a671d5364e2bc17502385a721a9707be66f6"
+  },
+  "native_tests": {
+    "result": "PASS",
+    "checks": 454,
+    "evidence": "../mobile/tests/dedicated-native-result.txt",
+    "scope": "fresh disposable native schema including refresh, actor/tenant authorization, signed writes, conflict/retry and revoked access"
+  },
+  "automated_checks_total": 601,
+  "supported_writeback_actions": [
+    "ambulance.profile",
+    "ambulance.transfer",
+    "driver.transfer"
+  ],
+  "not_implemented_writeback": [
+    "create/delete records",
+    "daily sessions",
+    "repair completion and items/photos",
+    "individual trips/patient details",
+    "automatic operational mappings"
+  ],
+  "inline_layout_checked_utc": "2026-10-05T16:45:42.192501+00:00",
+  "inline_layout_checks": {
+    "result": "PASS",
+    "environment": "isolated synthetic Operations shell using native container selectors",
+    "checks": [
+      "integration renders within section.next-view-section > .next-view-section-container",
+      "native sidebar and header remain visible",
+      "same URL; no overview dialog",
+      "unsaved draft retained on Operations navigation",
+      "Fetch latest data and ambulance navigation",
+      "failed refresh retains previous view",
+      "403 clears integration and restores Operations",
+      "390px inline mobile layout"
+    ],
+    "production_render_verified": false,
+    "transport_checks_rerun": 29
+  },
+  "native_sidebar_placement": {
+    "checked_utc": "2026-10-05T16:54:17.761880+00:00",
+    "result": "PASS in isolated native-structure preview",
+    "placement": "After Settings, before yielded Live Operations footer",
+    "navigation": "Same browser tab and native main content container",
+    "styling": "Native navigator item/icon/content/label classes",
+    "production_deployed": false,
+    "transport_checks_rerun": 29
+  },
+  "native_hub_layout": {
+    "checked_utc": "2026-10-05T17:04:48.957718+00:00",
+    "production_deployed": false,
+    "fixture": "Loopback synthetic DEMO data only; native Maintenance Hub CSS loaded from fleetops-engine.css",
+    "passed": [
+      "native Maintenance Hub header, four KPI cards, grouped panels and Action Queue",
+      "sidebar opens inside existing Operations shell at same URL",
+      "Fetch latest data and ambulance records navigation",
+      "failed fetch retains displayed records and warns",
+      "return to Operations preserves draft",
+      "403 removes integration content",
+      "390px layout has no horizontal workspace overflow"
+    ],
+    "transport_checks": 29,
+    "desktop_evidence": "maintenance-style-desktop.png",
+    "mobile_evidence": "maintenance-style-mobile.png"
+  }
+}

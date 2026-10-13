@@ -1,0 +1,98 @@
+name: mapa-client-preview
+services:
+  database:
+    image: mysql:8.0-oracle
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: mapa_client_preview
+      MYSQL_USER: mapa_preview
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes: [demo_mysql:/var/lib/mysql]
+    networks: [data]
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD="$$MYSQL_ROOT_PASSWORD" mysqladmin ping -h localhost -uroot --silent']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+  cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks: [data]
+  api:
+    image: mapa-cloud-api:pilot
+    restart: unless-stopped
+    environment:
+      APP_KEY: ${APP_KEY}
+      APP_NAME: MAPA
+      MAPA_COMPANY_UUID: 8e6e2219-85a3-4d5c-9dc9-0e9cbe5924c1
+      ASR_COMPANY_UUID: 8e6e2219-85a3-4d5c-9dc9-0e9cbe5924c1
+      APP_ENV: production
+      APP_DEBUG: "false"
+      LOG_LEVEL: warning
+      APP_URL: ${MAPA_PREVIEW_ORIGIN}/api
+      CONSOLE_HOST: ${MAPA_PREVIEW_ORIGIN}
+      SESSION_DOMAIN: ${MAPA_PREVIEW_HOST}
+      SESSION_SECURE_COOKIE: "true"
+      SESSION_DRIVER: redis
+      DB_CONNECTION: mysql
+      DB_HOST: database
+      DB_DATABASE: mapa_client_preview
+      DB_USERNAME: mapa_preview
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DATABASE_URL: mysql://mapa_preview:${MYSQL_PASSWORD}@database/mapa_client_preview
+      REDIS_HOST: cache
+      REDIS_URL: tcp://cache
+      CACHE_URL: tcp://cache
+      CACHE_DRIVER: redis
+      CACHE_PREFIX: mapa_client_preview_
+      QUEUE_CONNECTION: sync
+      BROADCAST_DRIVER: log
+      MAIL_MAILER: log
+      MAIL_FROM_ADDRESS: preview@mapa.invalid
+      MAIL_FROM_NAME: MAPA
+      REGISTRY_PREINSTALLED_EXTENSIONS: "true"
+      MAPA_VOICE_LIVE_ENABLED: "false"
+      MAPA_ADAPTER_TOKEN: ""
+      MAPA_VOICE_BRIDGE_SECRET: ""
+      SARVAM_API_KEY: ""
+    volumes: [demo_uploads:/fleetbase/api/storage/app]
+    networks:
+      data: {}
+      front:
+        aliases: [mapa-preview-api]
+    depends_on:
+      database: {condition: service_healthy}
+      cache: {condition: service_started}
+    logging: &logs
+      driver: json-file
+      options: {max-size: "5m", max-file: "2"}
+  gateway:
+    image: nginx:1.31.6-alpine
+    restart: unless-stopped
+    ports: ["127.0.0.1:8895:8080"]
+    environment:
+      MAPA_PUBLIC_HOST: ${MAPA_PREVIEW_HOST}
+      NGINX_ENVSUBST_FILTER: ^MAPA_PUBLIC_HOST$$
+    volumes:
+      - ./gateway.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./proxy.conf:/etc/nginx/mapa-proxy.conf:ro
+      - ../../private/client-preview/console-pages:/usr/share/nginx/html:ro
+    networks: [front]
+    logging: *logs
+  tunnel:
+    image: cloudflare/cloudflared:2026.9.1
+    dns: [1.1.1.1, 8.8.8.8]
+    command: [tunnel, --no-autoupdate, --protocol, http2, --url, "http://gateway:8080"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    networks: [front]
+    logging: *logs
+networks:
+  data: {internal: true}
+  front: {}
+volumes:
+  demo_mysql:
+  demo_uploads:
+

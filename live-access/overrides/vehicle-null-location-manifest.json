@@ -1,0 +1,42 @@
+[
+  {
+    "override": "fleetbase\\live-access\\overrides\\VehicleResource.php",
+    "runtime_path": "/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Resources/v1/Vehicle.php",
+    "original_sha256": "09cc0d6a750b5794f9cdf73fd2b7a80e6187882c3e5edaaca4d8f8af7db600bc",
+    "new_sha256": "8ff22acea8a053e53fc73bfad9649f1c1a9760dde3447451f85c0e442b1f5bb7",
+    "null_guard_expressions": 2,
+    "source_path": "fleetops-source\\server\\src\\Http\\Resources\\v1\\Vehicle.php",
+    "source_original_sha256": "036e81d87ddd76f20dbc56521ecd151f5c1cb48fd66f482496a1e736b29d49e0",
+    "source_new_sha256": "4553900a037f71c2e527ff8e4b048ae833fbecf91f46ec832a9ab7e5ac4ff8f6"
+  },
+  {
+    "override": "fleetbase\\live-access\\overrides\\VehicleWithoutDriverResource.php",
+    "runtime_path": "/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Resources/v1/VehicleWithoutDriver.php",
+    "original_sha256": "2f9afc44ec3365e99a8bc63659ff8b4ea1ecf49bd8948531232ea4980e9c3957",
+    "new_sha256": "56b8c25c6fb2fc4a8cd1ddeb57e937090573626559cc9f974b637182d582959a",
+    "null_guard_expressions": 2,
+    "source_path": "fleetops-source\\server\\src\\Http\\Resources\\v1\\VehicleWithoutDriver.php",
+    "source_original_sha256": "d3ddc38bc8053b655911d9f4aae57eb496ade245f307f0321c19bf18e23e46c1",
+    "source_new_sha256": "c39818001ee53ca296ddbb6bc8ac88f6f19033d6df5d5a28cf24ba562263b073"
+  },
+  {
+    "override": "fleetbase\\live-access\\overrides\\VehicleIndexResource.php",
+    "runtime_path": "/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Resources/v1/Index/Vehicle.php",
+    "original_sha256": "acb93c91eb6a9e908f901bc0252473f05d51af4e7bf7a66eb135a282d7d60a30",
+    "new_sha256": "70f0dfc75b3cc9716d749434486386d47da80bc26cfdc3d83beb858414f1c8b2",
+    "null_guard_expressions": 2,
+    "source_path": "fleetops-source\\server\\src\\Http\\Resources\\v1\\Index\\Vehicle.php",
+    "source_original_sha256": "b0655e1ff803348b3ae9e85c4791a7b620d2046a3d3046a316ecb3c94b28438d",
+    "source_new_sha256": "ac1af6fad897bf42fa544bb5382d16a01d8217223185c87b026df8d02e4a4afd"
+  },
+  {
+    "override": "fleetbase\\live-access\\overrides\\LiveController.php",
+    "runtime_path": "/fleetbase/api/vendor/fleetbase/fleetops-api/server/src/Http/Controllers/Internal/v1/LiveController.php",
+    "original_sha256": "f5a6ee87302174df12a385b4d5191804f00ea49e0084fbeed06f2dedee61be80",
+    "new_sha256": "db9e4f6e2d09ae2f8a1f043109ecf7457a66ae8d228cf120e6f05719553ef794",
+    "null_guard_expressions": 1,
+    "source_path": "fleetops-source\\server\\src\\Http\\Controllers\\Internal\\v1\\LiveController.php",
+    "source_original_sha256": "92c32d46edc5613d2ee8c50fdd6666160962389c64ae47b3a5459bfbfb326cec",
+    "source_new_sha256": "200fd34fa8c51c0839ac65f171472aff0fb2ed24cf6c950ea7c6f19e88c6b338"
+  }
+]

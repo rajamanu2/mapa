@@ -1,0 +1,10 @@
+[Unit]
+Description=Check MAPA availability every minute from an independent host
+
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=60s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

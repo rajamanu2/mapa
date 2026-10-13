@@ -1,0 +1,110 @@
+MAPA PRIVATE ROAD ROUTING — DEPLOYMENT PREPARATION
+Reviewed 2026-10-05. This file is a runbook, not proof of deployment.
+
+Purpose and boundary
+Caller tracking receives a planned road geometry from MAPA's own private router.
+No caller/ambulance coordinates are sent to the public OSRM demo or another routing provider.
+The route is a car-profile estimate, not traffic-aware navigation or guaranteed arrival time.
+Only the current native pickup/destination and a fresh assigned ambulance fix are eligible.
+An unaccepted caller pickup candidate cannot alter this route.
+Unavailable, unsupported, stale or out-of-region routing returns null; never substitute a straight line labelled as a road route.
+
+Application configuration (disabled until engine validation)
+MAPA_ROAD_ROUTING_ENABLED=false
+MAPA_ROAD_ROUTING_ORIGIN=http://mapa-road-router:5000
+The adapter accepts ONLY this exact origin and RFC1918 IPv4 DNS results.
+It pins the resolved IP, disables proxies and redirects, caps response size at 256KiB,
+limits geometry to 4096 points, uses 0.4s connect/1.5s total timeouts and a 20s cache.
+The adapter expiry is 60s; the view additionally binds leg, fix timestamp and revision.
+Do not enable by changing public OSRM_HOST: this adapter deliberately does not use it.
+
+Official engine artifact
+Release v26.10.0 exists, but registry checks returned manifest unknown for both
+ghcr.io/project-osrm/osrm-backend:v26.10.0 and :26.10.0 on the review date.
+Do not assume Git release tags are published container tags.
+The official :latest manifest was inspected read-only. Its linux/amd64 image was:
+ghcr.io/project-osrm/osrm-backend@sha256:84074e1e66bd7eedc7fe52ece0f4deb2e6865454855ae77675c5f753d281fd58
+Verify the VPS is amd64, inspect/pull this immutable digest, and record
+osrm-routed --version and image RepoDigests before use. Never silently substitute latest.
+Use the same digest for extraction, partition, customize and serving.
+
+Dataset
+Geofabrik Southern Zone PBF was listed as 532MB, data through 2026-10-03T20:20:50Z.
+https://download.geofabrik.de/asia/india/southern-zone-latest.osm.pbf
+https://download.geofabrik.de/asia/india/southern-zone-latest.osm.pbf.md5
+https://download.geofabrik.de/asia/india/southern-zone.poly
+Download only into a new dedicated road-data directory, never application/database volumes.
+Fetch PBF and checksum over HTTPS, verify checksum before processing, then record a local
+SHA256, byte count, download date, data timestamp and polygon. MD5 checks transfer integrity;
+it is not an independent authenticity signature. Re-fetch both if rolling latest changes.
+Retain a dated local dataset rather than allowing automatic unreviewed replacement.
+Check polygon coverage for every operational region, including Araku and Visakhapatnam.
+Southern Zone is not all India. Border-crossing routes (for example into Odisha) may fail
+or require another reviewed dataset; do not use a public fallback.
+
+Capacity and safe preparation
+Do not promise memory needs from download size. OSRM's published memory table is old
+(v5.26, 2021), varies by graph/profile, and only offers rough scaling guidance.
+Plan at most 2 CPUs and 8GiB RAM for each preprocessing container, no extra swap,
+with no network during graph creation. Inspect actual VPS free memory/disk and live API
+latency first. If there is insufficient headroom, leave routing disabled and build elsewhere.
+Provision a separate disk quota/budget (initially at least 15GB free dedicated space);
+measure actual output before deployment. An OOM or full disk is a failed build, not permission
+to restart production, reduce database resources or delete application data.
+
+Preparation commands (Linux examples; replace variables only with verified paths/digest)
+Set ROAD_IMAGE to the full immutable digest above; ROAD_DATA to the verified new absolute
+dataset directory. Confirm all resolved paths remain in that dedicated directory.
+Inspect each tool's --help for this pinned build before executing; then sequentially:
+
+docker run --rm --network none --cpus=2 --memory=8g --memory-swap=8g \
+  -v "$ROAD_DATA:/data" "$ROAD_IMAGE" osrm-extract -p /opt/car.lua /data/southern-zone-latest.osm.pbf
+docker run --rm --network none --cpus=2 --memory=8g --memory-swap=8g \
+  -v "$ROAD_DATA:/data" "$ROAD_IMAGE" osrm-partition /data/southern-zone-latest.osrm
+docker run --rm --network none --cpus=2 --memory=8g --memory-swap=8g \
+  -v "$ROAD_DATA:/data" "$ROAD_IMAGE" osrm-customize /data/southern-zone-latest.osrm
+
+Capture exit codes, elapsed time, maximum RSS, available disk and app latency at each stage.
+The .osrm filename is a dataset prefix; multiple generated files are required together.
+Do not activate incomplete output. Avoid collecting query URLs or coordinates in logs.
+
+Serving and network
+Create a separately scoped OSRM service with the same image digest and read-only dataset,
+2 CPU cap and initially 4GiB RAM cap (validate actual usage; no blanket capacity guarantee).
+Command: osrm-routed --algorithm mld /data/southern-zone-latest.osrm
+Use read-only root filesystem, dropped capabilities, no-new-privileges, bounded log rotation,
+and restart unless-stopped only after validation. Inspect CLI help for quiet/logging options;
+do not enable request URL/access logs.
+No ports: entries, host bindings, Cloudflare routes or public firewall openings are needed.
+The private Docker network must give the service alias mapa-road-router to the API only.
+Inspect the authoritative API's actual networks; do not guess names or recreate containers.
+Prefer a dedicated internal network shared only with the API and road router. Attaching
+that network must preserve the existing API networks and service availability.
+If Compose is edited, always include compose.override.yml, preserving authoritative final volumes.
+
+Validation before enable
+1. Probe the private alias from the API network using approved synthetic public-city points,
+   never a real caller/ambulance position. Confirm route code Ok, lon/lat GeoJSON and endpoints.
+2. Exercise NoRoute/NoSegment, too-distant snap, network failure and service-down behavior:
+   tracking remains usable and planned_road_route is null.
+3. Confirm host port 5000 is not published and router is unreachable publicly.
+4. Benchmark isolated route latency and simultaneous app reads under the resource caps.
+5. Apply the new class/config/TripTrackingView hook with normal guarded app deployment.
+   Set enabled=true only after the prior checks. Rebuild config cache/reload workers with
+   the existing maintenance-aware procedure; do not restart database or source PC writers.
+6. Verify authenticated/anonymous boundaries and caller link: pickup leg, hospital leg,
+   updated accepted pickup, reassignment, stale GPS, completion/revocation and offline UI.
+7. UI shows 'Planned road route' and © OpenStreetMap contributors linked to
+   https://www.openstreetmap.org/copyright. Duration is an estimate, not live traffic ETA.
+
+Disable/recovery
+Set MAPA_ROAD_ROUTING_ENABLED=false through the guarded config procedure if route service
+misbehaves. Core trip tracking remains available. Keep existing application volumes and
+current trip data untouched. Dataset updates require fresh preparation and revalidation.
+
+Primary references
+https://github.com/Project-OSRM/osrm-backend
+https://github.com/Project-OSRM/osrm-backend/releases/tag/v26.10.0
+https://project-osrm.org/docs/v5.24.0/api/
+https://github.com/Project-OSRM/osrm-backend/wiki/Disk-and-Memory-Requirements
+https://download.geofabrik.de/asia/india/southern-zone.html

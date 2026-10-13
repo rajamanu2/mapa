@@ -1,0 +1,34 @@
+<?php
+/** Offline pure display projection test: no app bootstrap, database or network. */
+require ($argv[1]??'/fleetbase/api/vendor/autoload.php');
+require __DIR__.'/../Policy.php';
+require __DIR__.'/../AmbulanceDirectory.php';
+use App\MapaVoice\AmbulanceDirectory;
+$checks=0;$check=static function(bool $ok,string $message)use(&$checks){if(!$ok)throw new RuntimeException($message);$checks++;};
+$project=new ReflectionMethod(AmbulanceDirectory::class,'fields');
+$vehicle=(object)['public_id'=>'vehicle_DEMO_isolated','name'=>'DEMO isolated ambulance','plate_number'=>'AP31 X4321','type'=>'108','online'=>true,'status'=>'available','meta'=>'{"mapa_demo":false}'];
+$driver=(object)['public_id'=>'driver_DEMO_isolated','online'=>false,'status'=>'available','meta'=>'{"mapa_demo":false}'];$user=(object)['name'=>'DEMO isolated crew'];
+$registeredBase=(object)['public_id'=>'place_DEMO_reviewed','name'=>'testinghospital','street1'=>'Araku','meta'=>'{"mapa_demo":false}'];
+$row=$project->invoke(null,$vehicle,$driver,$user,$registeredBase,null,false);
+$check($row['hospital_name']==='testinghospital' && $row['hospital_address']==='Araku','actual registration-shaped native base address preserved');
+$check($row['vehicle_online']===true && $row['crew_on_duty']===false && $row['vehicle_status']==='available','vehicle map status remains distinct from crew duty');
+$check(AmbulanceDirectory::matches($row,'Araku'),'registered base address is searchable even when hospital name omits its area');
+$check(AmbulanceDirectory::matches($row,'araku AP31X4321'),'address and compact registration tokens match together');
+$check(!AmbulanceDirectory::matches($row,'paderu'),'another area is not invented');
+$sourceBase=(object)['name'=>'DEMO source hospital','street1'=>'DEMO Chintapalli approach road','meta'=>'{"mapa_demo":false,"asr_import":{"base_name":"Chintapalli"}}'];
+$row=$project->invoke(null,$vehicle,$driver,$user,$registeredBase,$sourceBase,false);
+$check($row['hospital_address']==='Araku' && $row['source_base_address']==='DEMO Chintapalli approach road','current approved and source address contexts remain separate');
+$check(AmbulanceDirectory::matches($row,'Chintapalli') && AmbulanceDirectory::matches($row,'Araku'),'both safe real-base contexts are discoverable');
+$unlinked=$project->invoke(null,$vehicle,null,null,null,$sourceBase,false);
+$check($unlinked['hospital_address']===$sourceBase->street1 && $unlinked['driver_id']===null,'unlinked inventory uses only its scoped source-base address');
+$check($unlinked['vehicle_online']===true && $unlinked['crew_on_duty']===null,'unlinked ambulance retains its own status without inventing crew duty');
+$hidden=$project->invoke(null,$vehicle,null,null,null,null,false);
+$check($hidden['hospital_address']==='' && $hidden['source_base_address']==='' && !AmbulanceDirectory::matches($hidden,'Araku'),'missing or excluded driver/base context cannot leak an address');
+$registeredBase->street1=['email'=>'PRIVATE'];$safe=$project->invoke(null,$vehicle,$driver,$user,$registeredBase,null,false);
+$check($safe['hospital_address']==='' && !str_contains(json_encode($safe),'PRIVATE'),'malformed non-string address is never serialized');
+$registeredBase->street1="Araku\nValley";$safe=$project->invoke(null,$vehicle,$driver,$user,$registeredBase,null,false);
+$check($safe['hospital_address']==='Araku Valley','control characters in address become plain text');
+$registeredBase->street1=str_repeat('a',300);$safe=$project->invoke(null,$vehicle,$driver,$user,$registeredBase,null,false);
+$check(mb_strlen($safe['hospital_address'])===250,'address has a bounded public projection');
+$check(!array_key_exists('latitude',$safe) && !array_key_exists('longitude',$safe) && !array_key_exists('distance_km',$safe),'safe base address projection never fabricates location or ETA');
+echo json_encode(['ok'=>true,'checks'=>$checks,'database_connections'=>0,'network_requests'=>0],JSON_PRETTY_PRINT).PHP_EOL;
