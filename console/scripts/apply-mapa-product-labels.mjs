@@ -4,7 +4,27 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const groups = new Set(['developers', 'iam', 'settings', 'storefront', 'trailer', 'widget', 'fleet-ops', 'integrated-vendor', 'modals', 'order', 'order-config-manager', 'app', 'auth', 'onboard', 'install', 'invite']);
-const words = text => text.replaceAll('Fleetbase', 'MAPA').replaceAll('Fleet-Ops', 'MAPA Operations').replaceAll('MAPA CLI', 'application CLI');
+// Match product words, never namespaces, URL paths, package names or schema keys.
+const words = text => text.split(/(https?:\/\/[^\s"'<>]+)/g).map(part => /^https?:\/\//.test(part) ? part : part
+    .replace(/\bFleetbase\b(?![\\/])/g, 'MAPA').replace(/\bFleet[- ]Ops\b/g, 'MAPA Operations').replaceAll('MAPA CLI', 'application CLI')).join('');
+
+export function renameProductTemplate(text, relative = '') {
+    if (/legal|fleetbase-blog/.test(relative)) return text;
+    // Retain upstream notices and comments byte for byte.
+    return text.split(/(\{\{!--[\s\S]*?--\}\}|\{\{![\s\S]*?\}\}|<!--[\s\S]*?-->)/g)
+        .map(part => /^(\{\{!|<!--)/.test(part) ? part : part.split(/\n/).map(line => /copyright|\blicen[cs]e[ds]?\b|\bAGPL\b/i.test(line) ? line : words(line.replaceAll('Fleetbase Merchant Backend', '__UPSTREAM_MERCHANT_BACKEND__')).replaceAll('__UPSTREAM_MERCHANT_BACKEND__', 'Fleetbase Merchant Backend')).join('\n'))
+        .join('');
+}
+
+export function renameProductJavaScript(text, relative = '') {
+    if (/legal|fleetbase-blog/.test(relative)) return text;
+    // Limit changes to display fields. Imports, permission keys, routes, model
+    // names, translated keys, identifiers and upstream source comments stay intact.
+    return text.replace(/(\b(?:title|label|name|description|helpText|loadingMessage|message)\s*:\s*)(['"`])((?:\\.|(?!\2)[^\\\r\n])*)\2/g,
+        (_, prefix, quote, value) => prefix + quote + (/legal|copyright|\blicen[cs]e[ds]?\b|\bAGPL\b/i.test(value) ? value : words(value)) + quote)
+        .replaceAll("return 'Fleet Ops';", "return 'MAPA Operations';")
+        .replaceAll("return 'Fleet-Ops did not find imported provider bills that still need vehicle or trip matching.';", "return 'MAPA did not find imported provider bills that still need vehicle or trip matching.';");
+}
 
 export function renameProductTranslations(text) {
     let group = '';
@@ -43,6 +63,23 @@ export function applyMapaProductLabels(consoleRoot = process.cwd()) {
             updates.set(file, renameProductTranslations(fs.readFileSync(file, 'utf8')));
         }
     }
+    // Production installs engines from npm, so patch the installed source that
+    // Ember actually compiles, not only the optional development checkouts.
+    const sourceRoots = [path.join(consoleRoot, 'app'), ...fs.readdirSync(path.join(consoleRoot, 'node_modules/@fleetbase'), { withFileTypes: true })
+        .filter(entry => (entry.isDirectory() || entry.isSymbolicLink()) && fs.statSync(packageRoot(entry.name)).isDirectory()).map(entry => path.join(packageRoot(entry.name), 'addon'))];
+    function visit(directory) {
+        if (!fs.existsSync(directory)) return;
+        for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+            const file = path.join(directory, entry.name);
+            if (entry.isDirectory()) visit(file);
+            else if (/\.(hbs|js)$/.test(file)) {
+                const original = updates.get(file) ?? fs.readFileSync(file, 'utf8');
+                const transformed = file.endsWith('.hbs') ? renameProductTemplate(original, file) : renameProductJavaScript(original, file);
+                if (transformed !== original) updates.set(file, transformed);
+            }
+        }
+    }
+    sourceRoots.forEach(visit);
     for (const [file, content] of updates) fs.writeFileSync(file, content);
     console.log('MAPA product labels applied; translation keys, data contracts and upstream notices preserved.');
 }

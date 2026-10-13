@@ -48,7 +48,9 @@ final class ProviderGpsSnapshotService
             foreach($points->take(1000)->reverse() as $point){$lat=(float)$point->latitude;$lon=(float)$point->longitude;
                 if(is_finite($lat)&&is_finite($lon)&&abs($lat)<=90&&abs($lon)<=180&&!($lat===0.0&&$lon===0.0))$trail[]=['latitude'=>$lat,'longitude'=>$lon,'recorded_at'=>(int)$point->recorded_at];}
         }
-        return ['contract'=>'mapa-gps-journey-v1','vehicle_id'=>$vehicle->public_id,'server_time'=>$now,
+        $nativeOrder=\Fleetbase\FleetOps\Models\Order::withoutGlobalScopes()->where(['uuid'=>$order->uuid,'company_uuid'=>$company,'vehicle_assigned_uuid'=>$vehicleId])->whereNull('deleted_at')->first();
+        $navigation=$nativeOrder?TripTrackingView::forOrder($nativeOrder->uuid,$company,$nativeOrder):null;
+        return ['contract'=>'mapa-gps-journey-v1','vehicle_id'=>$vehicle->public_id,'server_time'=>$now,'navigation'=>$navigation,
             'trip'=>['order_id'=>$order->public_id,'status'=>$order->status,'created_at'=>$created,'started_at'=>$started,'ended_at'=>in_array($order->status,['completed','canceled','cancelled','failed'],true)?$ended:null,
                 'pickup'=>$value($review['pickup_address']??$draft['pickup_address']??null,300),
                 'destination'=>$value($review['destination_facility_name']??$intake['destination_facility_name']??null,200),
@@ -104,6 +106,17 @@ final class ProviderGpsSnapshotService
                     $binding['driver_id']=$byVehicle[$vehicle]->driver_id;$binding['driver_name']=$byVehicle[$vehicle]->driver_name;
                 }}unset($binding);
             }
+        }
+        // Display only: expose an unexpired offer deadline, never call or patient details.
+        // The private provider file cannot assert this operational state.
+        if($bindings && Schema::hasTable('mapa_dispatch_offers')){
+            $offers=DB::table('mapa_dispatch_offers')->where('company_uuid',$company)->where('state','offered')
+                ->whereIn('vehicle_uuid',array_column($bindings,'vehicle_uuid'))
+                ->where('expires_at','>',gmdate('Y-m-d H:i:s',(int)($now/1000)))
+                ->select('vehicle_uuid')->selectRaw('MAX(expires_at) as offer_expires_at')->groupBy('vehicle_uuid')->get()->keyBy('vehicle_uuid');
+            foreach($bindings as &$binding)if(isset($offers[$binding['vehicle_uuid']])){
+                $binding['offer_expires_at']=\Carbon\Carbon::parse($offers[$binding['vehicle_uuid']]->offer_expires_at,'UTC')->valueOf();
+            }unset($binding);
         }
         return ProviderGpsSnapshotPolicy::view($snapshot,$company,$bindings,$now);
     }

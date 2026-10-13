@@ -22,10 +22,10 @@ function setup(pathname) {
     };
     return { opens, click, location, events };
 }
-for (const selector of ['button.fleet-ops-sidebar-primary-action', 'a.fleet-ops-sidebar-primary-action', 'button#map-toolbar-create-order-button']) {
+for (const selector of ['button.fleet-ops-sidebar-primary-action', 'a.fleet-ops-sidebar-primary-action']) {
     const app = setup('/fleet-ops');
     const result = app.click(selector);
-    check(result.prevented && result.stopped && app.events.click.capture === true, 'Native same-tab create handler is stopped before navigation');
+    check(result.prevented && result.stopped && app.events.click.capture === true, 'Sidebar New Call opens the operator desk before native navigation');
     check(JSON.stringify(app.opens) === JSON.stringify([['/call-intake/', '_blank', 'noopener,noreferrer']]), 'Exactly one separate intake tab opens without opener access');
     check(app.location.pathname === '/fleet-ops', 'Operations stays at its original address');
     app.click(selector, {}, true); app.click(selector, {}, false, true);
@@ -39,6 +39,8 @@ for (const pathname of ['/auth', '/settings', '/call-intake/']) {
 }
 const app = setup('/fleet-ops');
 check(!app.click('button.delete').prevented && !app.click('a.download').prevented && app.opens.length === 0, 'Unrelated Operations controls keep native behavior');
+const transport = app.click('button#map-toolbar-create-order-button');
+check(!transport.prevented && !transport.stopped && app.opens.length === 0, 'Map toolbar transport order retains the native form instead of opening the operator desk');
 let messages = [], names = [], closes = 0;
 core.notifyIntakeUpdated(class { constructor(name) { names.push(name); } postMessage(message) { messages.push(message); } close() { closes++; } });
 check(names[0] === 'mapa-intake-updates' && closes === 1, 'Short-lived notification channel closes after publication');

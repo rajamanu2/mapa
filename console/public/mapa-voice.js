@@ -214,6 +214,48 @@
     function ambulanceContext(row) {
         return [...new Set([row.hospital_name, row.base_name, row.hospital_address, row.source_base_address, row.mandal, row.secretariat].map(string).map(value => value.trim()).filter(Boolean))].join(' · ');
     }
+    function enrollmentLinkSummary(row = {}) {
+        const missing = [['driver_id', 'driver'], ['vehicle_id', 'ambulance'], ['place_id', 'hospital / base']]
+            .filter(([key]) => !safeId(row[key])).map(([, label]) => label);
+        if (row.status !== 'approved') return { label: row.status || 'Unknown', warning: '', missing };
+        return { label: missing.length ? 'Approved · link needs repair' : 'Approved', missing,
+            warning: missing.length ? `Missing saved ${missing.join(', ')} link. Control must reconcile the registration, crew account and mobile binding before this crew is used for dispatch.`
+                : 'Saved driver, ambulance and hospital / base records are present. Check the current assignment, phone connection, duty and fresh GPS in the fleet view before dispatch.' };
+    }
+    function crewMapping(row = {}) {
+        const ambiguous = row.crew_link_status === 'ambiguous' || row.driver_mapping_ambiguous === true;
+        const linked = !ambiguous && row.crew_link_status !== 'unlinked' && safeId(row.driver_id);
+        // In desk rows name is the ambulance; directory rows use name for the crew.
+        const driverName = Object.hasOwn(row, 'driver_name') ? row.driver_name : row.name;
+        const driver = ambiguous ? 'multiple crew links need review' : linked ? string(driverName).trim() || row.driver_id : 'no assigned driver returned';
+        const ambulance = string(row.vehicle_registration || row.registration || row.vehicle_name).trim() || (safeId(row.vehicle_id) ? row.vehicle_id : 'not recorded');
+        const verifiedBase = linked && safeId(row.vehicle_id) && row.crew_mobile_bound === true && safeId(row.hospital_place_id);
+        const recordedBase = string(row.hospital_name || row.base_name).trim();
+        const base = verifiedBase ? 'Verified hospital / base: ' + (recordedBase || row.hospital_place_id) : 'Hospital / base: no verified crew link returned';
+        const notes = [];
+        if (!verifiedBase && recordedBase) notes.push('Recorded base: ' + recordedBase + ' (not a verified crew link)');
+        if (row.crew_mobile_bound === false) notes.push('Crew phone not connected');
+        if (row.mapping_notice) notes.push(string(row.mapping_notice));
+        if (row.source_owned === true) notes.push('ASR-managed · tracking only; dispatch remains on ASR Health');
+        return { summary: 'Driver: ' + driver + ' → Ambulance: ' + ambulance + ' → ' + base, notes, verifiedBase: !!verifiedBase };
+    }
+    /** Add directory facts only for one exact current driver/vehicle pair; never replace GPS evidence. */
+    function withCurrentCrewMapping(position, directory) {
+        const row = { ...position };
+        const fields = ['hospital_place_id', 'hospital_name', 'base_name', 'crew_link_status', 'crew_mobile_bound'];
+        for (const key of fields) delete row[key];
+        const vehicleRows = Array.isArray(directory) ? directory.filter(item => item && safeId(row.vehicle_id) && item.vehicle_id === row.vehicle_id) : [];
+        // Source ownership belongs to the vehicle even when its crew assignment needs review.
+        if (vehicleRows.some(item => item.source_owned === true)) row.source_owned = true;
+        const matches = vehicleRows.filter(item => safeId(row.driver_id) && item.driver_id === row.driver_id);
+        if (vehicleRows.length === 1 && matches.length === 1) {
+            for (const key of fields) if (Object.hasOwn(matches[0], key)) row[key] = matches[0][key];
+        } else if (vehicleRows.length) {
+            if (vehicleRows.length === 1 && ['ambiguous', 'unlinked'].includes(vehicleRows[0].crew_link_status)) row.crew_link_status = vehicleRows[0].crew_link_status;
+            row.mapping_notice = 'Crew mapping changed or is ambiguous; refresh before reviewing dispatch';
+        }
+        return row;
+    }
     function ambulanceAvailabilityEvidence(row) {
         const facts=[];
         if(row.vehicle_online===true)facts.push('Vehicle marked online');
@@ -430,6 +472,9 @@
     }
     const pure = { dispatchPipeline, destinationPage, notifyIntakeUpdated, confirmedCallerPickup, compareCallerPickup, pickupConfirmationIntent, pickupConfirmationReceipt, smsSaveAllowed, smsStatusText, callerPickup, ambulanceDirectory, ambulanceContext, reviewDraft, manualDraft, eligible, dispatchAllowed, makeIntent, failureWarning, intakeNotice, pickupCandidate, travelPoints, ASR_BOUNDS, inAsrDispatchMap, showDispatchPosition, locationQuery, googleSearchUrl, pastedPickupPoint, googlePlaceCandidate, callSteps, validRequestPath, enrollmentRows, crewApprovalDraft, crewIntent, tripReportRows, privateMediaPath, enrollmentReceipt, crewResourceDraft, crewResourceReceipt, sourceCallRecent, gpsCoverage };
     pure.gpsQuality = gpsQuality;
+    pure.crewMapping = crewMapping;
+    pure.enrollmentLinkSummary = enrollmentLinkSummary;
+    pure.withCurrentCrewMapping = withCurrentCrewMapping;
     if (typeof document === 'undefined') { if (typeof module === 'object' && module.exports) module.exports = pure; return; }
     if (document.documentElement.dataset.mapaVoiceInstalled) return;
     document.documentElement.dataset.mapaVoiceInstalled = 'true';
@@ -491,6 +536,11 @@
     function clearPrivateMedia() { mediaEpoch++; for (const url of mediaUrls) URL.revokeObjectURL(url); mediaUrls.clear(); }
     let lastMessage = '', lastError = false;
     const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = String(text); return node; };
+    function appendCrewMapping(parent, row) {
+        const mapping = crewMapping(row);
+        parent.append(el('p', 'mapa-voice-note mapa-crew-mapping', mapping.summary));
+        for (const note of mapping.notes) parent.append(el('p', 'mapa-voice-note', note));
+    }
     const date = value => { const parsed = new Date(value); return value && !Number.isNaN(parsed.getTime()) ? mapaIST(parsed) : 'Time unavailable'; };
     const badge = (text, type = '') => el('span', `mapa-voice-badge ${type}`, text);
     function button(text, action, primary = false) {
@@ -559,12 +609,17 @@
             return data;
         } finally { clearTimeout(timer); }
     }
+    function operationsButton() {
+        const close = button(standalone ? 'Operations' : 'Close', () => { if (!standalone) { dialog.close(); return; } if (window.parent !== window) { try { if (typeof window.parent.mapaCloseIntake === 'function') { window.parent.mapaCloseIntake(); return; } } catch (_) {} window.top.location.assign('/fleet-ops'); return; } if (window.mapaIntakeCanLeave()) location.assign('/fleet-ops'); });
+        close.setAttribute('aria-label', standalone ? 'Back to MAPA operations' : 'Close Call Intake');
+        return close;
+    }
     function ensureDialog() {
         if (dialog) return;
         dialog = el('dialog', `mapa-voice-dialog${standalone ? ' is-standalone' : ''}`); dialog.id = 'mapa-voice-dialog'; dialog.setAttribute('aria-labelledby', 'mapa-voice-title');
         const header = el('header', 'mapa-voice-header'); const identity = el('div');
         identity.append(el('span', 'mapa-voice-eyebrow', 'MAPA OPERATIONS')); const title = el('h2', '', standalone ? 'NEW CALL · Operator desk' : 'Call Intake'); title.id = 'mapa-voice-title'; identity.append(title);
-        const close = button(standalone ? 'Operations' : 'Close', () => { if (!standalone) { dialog.close(); return; } if (window.parent !== window) { try { if (typeof window.parent.mapaCloseIntake === 'function') { window.parent.mapaCloseIntake(); return; } } catch (_) {} window.top.location.assign('/fleet-ops'); return; } if (window.mapaIntakeCanLeave()) location.assign('/fleet-ops'); }); close.setAttribute('aria-label', standalone ? 'Back to MAPA operations' : 'Close Call Intake'); header.append(identity, close);
+        header.append(identity, operationsButton());
         if (!standalone) { const tab = el('a', 'mapa-voice-button', 'Open operator tab'); tab.href = '/call-intake/'; tab.target = '_blank'; tab.rel = 'noopener'; tab.addEventListener('click',event=>{event.preventDefault();openOperatorTab();}); header.append(tab); }
         status = el('div', 'mapa-voice-status'); status.tabIndex = -1; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
         content = el('div', 'mapa-voice-content'); dialog.append(header, status, content); document.body.append(dialog);
@@ -687,10 +742,10 @@
     }
     function renderCommandHeader(parent,toolbar){
         const header=el('header','mapa-command-header'),identity=el('div','mapa-command-brand');
-        identity.append(el('span','mapa-command-district','ASR DISTRICT · ITDA'),el('h2','','Integrated Ambulance Command Centre'),el('p','','MAPA · Live queue, road-time dispatch and connected caller tracking'));
+        identity.append(el('span','mapa-command-district','ASR DISTRICT · ITDA'),el('h2','','Call operations'),el('p','','Review calls, locate crews and manage dispatch.'));
         const controls=el('div','mapa-command-header-controls'),connection=el('span','mapa-command-connection');connection.textContent=deskError?'Data refresh unavailable':deskLoadedAt?'Latest server data · '+date(deskSnapshot?.server_time||deskLoadedAt):'Connecting to live data';
         connection.classList.toggle('is-error',!!deskError);const tools=el('details','mapa-command-tools');tools.append(el('summary','','Desk tools'),toolbar);
-        controls.append(connection,el('span','mapa-command-operator',session.name||'Operator'),tools);header.append(identity,controls);parent.append(header);
+        controls.append(connection,el('span','mapa-command-operator',session.name||'Operator'),tools,operationsButton());header.append(identity,controls);parent.append(header);
     }
     function beginDeskCall() {
         if(busy||pending||capabilities.manual_intake!==true)return;
@@ -703,16 +758,61 @@
         if(queueFilter==='unconfirmed')return source?['pending','new','unconfirmed'].includes(string(call.status).toLowerCase()):!call.review||['needs_review','received','draft'].includes(call.state);
         return true;
     }
+    function deskNavigationAllowed(destination) {
+        if (busy || pending) { announce('Finish the current update before opening '+destination+'.',true); return false; }
+        if ((dirty || resourceEditor) && !window.confirm('Discard unsaved edits and open '+destination+'?')) return false;
+        dirty=false; editDraft=null; manualEdit=null; resourceEditor=null;
+        return true;
+    }
+    function focusDeskRegion(selector) {
+        const target=content?.querySelector(selector);
+        if (!target) return false;
+        if (!['BUTTON','INPUT','SELECT','TEXTAREA','A'].includes(target.tagName)) target.tabIndex=-1;
+        target.focus({preventScroll:true}); target.scrollIntoView?.({block:'nearest'});
+        return true;
+    }
+    function navigateDeskMetric(key) {
+        const destinations={total_fleet:'the ambulance list',on_trip:'the orders map',active_calls:'the call queue',gps_stale_offline:'Ambulance Fleet',dispatchable_now:'crew eligibility'};
+        if (!destinations[key] || !deskNavigationAllowed(destinations[key])) return;
+        const path=key==='total_fleet'?'/fleet-ops/manage/vehicles':key==='on_trip'?'/fleet-ops?layout=map':null;
+        if (path) {
+            // Keep native navigation in its same-origin parent, outside the desk iframe.
+            try { if (window.parent!==window && window.parent.location.origin===location.origin) { window.parent.location.assign(path); return; } } catch (_) {}
+            location.assign(path); return;
+        }
+        activeView='calls'; newCall=false; asrSelected=null;
+        if (key==='dispatchable_now' && selected?.state==='ready' && selected.review) {
+            workflowChoice=null; secondaryTab='fleet'; render();
+            if (!focusDeskRegion('[name="ambulance_choice"]')) focusDeskRegion('.mapa-voice-candidates') || focusDeskRegion('.mapa-command-hero');
+            announce('Review the selected call’s crew eligibility and dispatch requirements.');
+            return;
+        }
+        selected=null; queueFilter='all';
+        if (key==='gps_stale_offline') secondaryTab='fleet';
+        render();
+        if (key==='gps_stale_offline') {
+            focusDeskRegion('.mapa-command-secondary-content');
+            announce('Ambulance Fleet shows each vehicle’s latest GPS evidence, including stale and missing fixes.');
+        } else {
+            focusDeskRegion('.mapa-command-queue');
+            announce(key==='dispatchable_now'?'Select a call and review its pickup and destination to check eligible crews.':'Call queue opened. Select a call to review.');
+        }
+    }
     function renderDeskMetrics(parent) {
         const strip=el('section','mapa-command-kpis');strip.setAttribute('aria-label','Live dispatch desk metrics');
         const summary=deskSnapshot?.summary;
         const fleet=Array.isArray(deskSnapshot?.fleet)&&deskSnapshot?.truncated?.fleet!==true?deskSnapshot.fleet:null;
         const coverage=summary?.gps_coverage||(fleet?gpsCoverage(fleet):null);
         const eligibleCount=selected?.state==='ready'&&selected.review?eligible(selected,candidates).length:null;
-        for(const [key,label] of [['dispatchable_now','Eligible for selected call'],['total_fleet','Total fleet'],['on_trip','On trip'],['gps_stale_offline','GPS stale / missing'],['active_calls','Active calls']]){
-            const card=el('div','mapa-command-kpi'),value=key==='dispatchable_now'?eligibleCount:key==='gps_stale_offline'&&coverage?coverage.stale+coverage.missing:summary?.[key];card.append(el('strong','',Number.isInteger(value)&&value>=0?value:key==='dispatchable_now'?'Select call':'—'),el('span','',label));
-            if(key==='dispatchable_now')card.append(el('small','','Calculated only after reviewing a call and checking crew, capability and GPS.'));
-            if(key==='gps_stale_offline'&&coverage)card.append(el('small','',`${coverage.stale} stale · ${coverage.missing} without verified fix · ${coverage.recent} recent`));
+        const actions={dispatchable_now:eligibleCount===null?'Select a reviewed call to check eligibility':'Open selected call crew eligibility',total_fleet:'Open native ambulance list',on_trip:'Open orders map',gps_stale_offline:'Open Ambulance Fleet to review GPS evidence',active_calls:'Open all calls in the call queue'};
+        for(const [key,label] of [['dispatchable_now','Eligible crews'],['total_fleet','Total fleet'],['on_trip','On trip'],['gps_stale_offline','GPS stale / missing'],['active_calls','Active calls']]){
+            const value=key==='dispatchable_now'?eligibleCount:key==='gps_stale_offline'&&coverage?coverage.stale+coverage.missing:summary?.[key],display=Number.isInteger(value)&&value>=0?value:key==='dispatchable_now'?'Select call':'—';
+            const card=button('',()=>navigateDeskMetric(key));card.className='mapa-command-kpi';card.dataset.voiceFocus='metric:'+key;card.disabled=!!busy||!!pending;
+            const detail=key==='gps_stale_offline'&&coverage?`${coverage.stale} stale · ${coverage.missing} without verified fix · ${coverage.recent} recent`:'';
+            card.title=actions[key]+(detail?' · '+detail:'');card.setAttribute('aria-label',`${label}: ${display}. ${card.title}`);
+            card.append(el('strong','',display),el('span','',label));
+            if(key==='dispatchable_now')card.append(el('small','','Choose a reviewed call to check eligibility.'));
+            if(detail)card.append(el('small','',detail));
             strip.append(card);
         }
         if(deskError)strip.append(el('p','mapa-voice-warning',deskLoadedAt?'Metrics are from the last successful refresh; current refresh unavailable.':'Live metrics unavailable. Refresh the command desk.'));
@@ -753,6 +853,7 @@
                 if(!rows.length)panel.append(el('p','mapa-voice-note','Select a reviewed call to see eligible ambulances and availability reasons.'));
                 for(const row of rows.slice(0,200)){
                     const evidence=deskSnapshot?.fleet?.find(vehicle=>vehicle.vehicle_id===row.vehicle_id)||row,card=el('article','mapa-command-row');card.append(el('strong','',row.vehicle_registration||row.vehicle_name||row.vehicle_id),badge(row.ready===true?'Eligible':row.ready===false?'Unavailable':'Eligibility not checked',row.ready===false?'is-error':''),el('p','mapa-voice-note',[evidence.driver_name||row.name,evidence.driver_phone,ambulanceContext(row),row.message].filter(Boolean).join(' · ')));
+                    appendCrewMapping(card, withCurrentCrewMapping(evidence, [row]));
                     const gps=evidence.gps_source==='hardware_gps'?'Ambulance device GPS':evidence.gps_source==='crew_phone'?'Assigned driver phone GPS':'GPS source not recorded';
                     card.append(el('p','mapa-voice-note','Capability: '+string(evidence.capability||row.vehicle_type||'Not recorded')+' · Status: '+string(evidence.status||'Not recorded')));
                     const availability=ambulanceAvailabilityEvidence(row);if(availability)card.append(el('p','mapa-voice-note',availability));
@@ -965,7 +1066,6 @@
             tabs.append(tab);controls.set(key,tab);
             const panel=el('section','mapa-command-create-slide mapa-voice-form-grid');panel.id='mapa-new-call-'+key;panel.setAttribute('role','tabpanel');panel.setAttribute('aria-label',label);
             for(const name of fields)panel.append(inputs[name].parentElement);
-            if(key==='caller')panel.append(el('div','mapa-command-inline-tracker mapa-voice-note','Save the call with caller permission to activate Send tracker & get location here. The caller must open the link and confirm the patient pickup before its coordinates are filled.'));
             const move=button(key==='caller'?'Next: Pickup & incident':'Back: Caller & priority',()=>{const target=key==='caller'?'pickup':'caller';show(target);controls.get(target).focus();});move.type='button';move.className+=' mapa-command-slide-next';panel.append(move);
             panels.set(key,panel);quick.append(panel);
         }
@@ -1074,7 +1174,6 @@
             parent.append(el('p', 'mapa-voice-warning', 'Training mode has been disabled. Start a new call for an actual incident. This earlier draft has not been converted into a real call.'));
             return;
         }
-        const progress = el('ol', 'mapa-command-pipeline mapa-voice-progress');renderDispatchPipeline(progress,null);parent.append(progress);
         const form = el('form', 'mapa-voice-review mapa-voice-intake-form mapa-command-create-form'), grid = el('div', 'mapa-voice-form-grid'), inputs = {};
         const modes = [['live', 'Live manual call · real operational record']];
         if (capabilities.demo === true) modes.push(['training', 'DEMO training · fictional caller and DEMO ambulances']);
@@ -1082,13 +1181,12 @@
         const mode = select(modeFields, 'Call mode', 'demo_mode', draft.demo === true ? 'training' : 'live', modes);
         mode.required = true;
         const modeNote = el('p', 'mapa-voice-note');
-        const describeMode = () => { modeNote.textContent = mode.value === 'live' ? 'Live call · saved in MAPA' : 'DEMO training · fictional caller and ambulances only'; };
+        const describeMode = () => { modeNote.textContent = mode.value === 'live' ? 'New call · not saved yet' : 'DEMO training · fictional caller and ambulances only'; };
         describeMode(); mode.addEventListener('change', describeMode); form.append(modeNote);
         const pilotSettings=el('details','mapa-command-training mapa-command-pilot'),pilotOption=checkbox(pilotSettings,'Supervised no-patient pilot using the approved live crew phones.');
         pilotOption.name='supervised_pilot';pilotOption.checked=draft.supervised_pilot===true;pilotSettings.open=pilotOption.checked;
         pilotSettings.insertBefore(el('summary','','Supervised crew dispatch pilot · no patient'),pilotSettings.children[0]);
         pilotSettings.append(el('p','mapa-voice-warning','Test only. This creates a MAPA record and may notify the scoped crew after a separate review. There is no patient, caller, WhatsApp link or hospital handover.'));
-        if(capabilities.supervised_pilot===true && session.role!=='operator')form.append(pilotSettings);
         inputs.caller_name = field(grid, 'Caller name', 'caller_name', draft.caller_name); inputs.caller_name.maxLength = 200;
         inputs.callback_number = field(grid, 'Caller phone / WhatsApp', 'callback_number', draft.callback_number, 'tel'); inputs.callback_number.maxLength = 40; inputs.callback_number.placeholder = '10 Indian digits or +country code';
         inputs.priority = select(grid, 'Emergency priority · operator decision', 'priority', draft.priority||draft.intake_priority||'routine', [['emergency','CRITICAL · Red alert'],['urgent','HIGH · Urgent'],['routine','NORMAL · Standard']]);
@@ -1098,10 +1196,11 @@
         inputs.latitude = field(grid, 'Pickup candidate latitude', 'latitude', draft.latitude, 'number'); inputs.latitude.step = 'any';
         inputs.longitude = field(grid, 'Pickup candidate longitude', 'longitude', draft.longitude, 'number'); inputs.longitude.step = 'any';
         const showCreationSlide=compactCreationFields(form,inputs);
+        if(capabilities.supervised_pilot===true && session.role!=='operator')form.append(pilotSettings);
         if(capabilities.demo===true)form.append(training);
         const verified = checkbox(form, 'I have confirmed this exact pickup address and pin with the caller.'); verified.name='pickup_confirmed_at_creation';verified.checked=draft.pickup_confirmed_at_creation===true;
         const trackerConsent = checkbox(form, 'Caller agreed to receive a private WhatsApp tracking link.'); trackerConsent.name='tracker_consent';trackerConsent.checked=draft.tracker_consent===true;
-        const trackerNote=el('p','mapa-voice-note','Save the call first. With a valid phone number and caller permission, MAPA creates the private tracker under Priority and Capability. Click Send to message the caller and start checking location. A fresh caller-confirmed pickup fills the coordinate candidates for review before dispatch.');form.append(trackerNote);
+        const trackerNote=el('p','mapa-voice-note','After saving, send the private tracker with caller permission. Review the caller-confirmed pickup before dispatch.');form.append(trackerNote);
         const updateTrackerMode = () => { trackerConsent.disabled=capabilities.caller_tracking!==true||mode.value!=='live'||pilotOption.checked; if(trackerConsent.disabled)trackerConsent.checked=false; };
         const applyPilotMode=()=>{
             const pilot=capabilities.supervised_pilot===true&&pilotOption.checked;
@@ -1109,22 +1208,21 @@
             else {mode.disabled=!!pending;if(inputs.caller_name.value===PILOT_CALLER)inputs.caller_name.value='';if(inputs.reported_problem.value===PILOT_REPORT)inputs.reported_problem.value='';}
             inputs.caller_name.readOnly=pilot;inputs.callback_number.disabled=pilot||!!pending;verified.disabled=pilot||!!pending;verified.parentElement.hidden=pilot;trackerConsent.parentElement.hidden=pilot;
             const patientSection=[...form.querySelectorAll('.mapa-command-create-options')].find(section=>section.textContent.includes('Patient & incident details'));if(patientSection)patientSection.hidden=pilot;
-            const trackerInline=form.querySelector('.mapa-command-inline-tracker');if(trackerInline)trackerInline.textContent=pilot?'No caller or WhatsApp tracker is used for this no-patient test. Save first; only the exact approved call and crews can be activated later.':'Save the call with caller permission to activate Send tracker & get location here. The caller must open the link and confirm the patient pickup before its coordinates are filled.';
-            trackerNote.textContent=pilot?'This test has no real caller or patient. Check the station point on the map. Saving does not send an offer; a separate scoped server review is required.':'Save the call first. With a valid phone number and caller permission, MAPA creates the private tracker under Priority and Capability. Click Send to message the caller and start checking location. A fresh caller-confirmed pickup fills the coordinate candidates for review before dispatch.';
-            modeNote.textContent=pilot?'SUPERVISED PILOT · NO PATIENT · live crew phones, no caller messaging':mode.value==='live'?'Live call · saved in MAPA':'DEMO training · fictional caller and ambulances only';
+            trackerNote.textContent=pilot?'This test has no real caller or patient. Check the station point on the map. Saving does not send an offer; a separate scoped server review is required.':'After saving, send the private tracker with caller permission. Review the caller-confirmed pickup before dispatch.';
+            modeNote.textContent=pilot?'SUPERVISED PILOT · NO PATIENT · live crew phones, no caller messaging':mode.value==='live'?'New call · not saved yet':'DEMO training · fictional caller and ambulances only';
             updateTrackerMode();
         };
         mode.addEventListener('change',()=>{if(mode.value!=='live')pilotOption.checked=false;applyPilotMode();});
         pilotOption.addEventListener('change',applyPilotMode);
-        const remember = event => { if (['location_search', 'location_scope'].includes(event?.target?.name)) return; if(event?.target!==verified&&event?.target!==trackerConsent)verified.checked=false;dirty = true; manualEdit = { ...Object.fromEntries(Object.entries(inputs).map(([key, input]) => [key, input.value])), pickup_confirmed_at_creation:verified.checked,demo: mode.value !== 'live', supervised_pilot:pilotOption.checked&&capabilities.supervised_pilot===true, tracker_consent:trackerConsent.checked }; renderDispatchPipeline(progress,null); };
+        const remember = event => { if (['location_search', 'location_scope'].includes(event?.target?.name)) return; if(event?.target!==verified&&event?.target!==trackerConsent)verified.checked=false;dirty = true; manualEdit = { ...Object.fromEntries(Object.entries(inputs).map(([key, input]) => [key, input.value])), pickup_confirmed_at_creation:verified.checked,demo: mode.value !== 'live', supervised_pilot:pilotOption.checked&&capabilities.supervised_pilot===true, tracker_consent:trackerConsent.checked }; };
         form.addEventListener('input', remember); form.addEventListener('change', remember);
         pickupMap(form, inputs, remember);
         const actions=el('div','mapa-intake-submit-actions');
         const clear=button('Cancel',()=>{if(busy||pending)return;if(dirty&&!window.confirm('Discard this unsaved call?'))return;manualEdit=null;dirty=false;newCall=false;render();});
-        const save = button('Create & Pin Emergency', () => {}, true); save.type = 'submit'; save.disabled = !!pending; actions.append(clear,save); form.append(actions);
+        const save = button('Save call', () => {}, true); save.type = 'submit'; save.disabled = !!pending; actions.append(clear,save); form.append(actions);
         for (const input of [mode, ...Object.values(inputs)]) input.disabled = !!pending;
         applyPilotMode();
-        pilotOption.addEventListener('change',()=>{save.textContent=pilotOption.checked?'Save no-patient pilot call':'Create & Pin Emergency';});
+        pilotOption.addEventListener('change',()=>{save.textContent=pilotOption.checked?'Save no-patient pilot call':'Save call';});
         if(pilotOption.checked)save.textContent='Save no-patient pilot call';
         form.addEventListener('submit', event => {
             event.preventDefault(); if (busy || pending) return;
@@ -1146,7 +1244,7 @@
     }
     function pickupMap(parent, inputs, changed, editable = true) {
         const box = el('section', 'mapa-voice-pickup-map'+(editable?'':' is-readonly')); box.append(el('h4', '', 'Locate the pickup'));
-        box.append(el('p', 'mapa-voice-note', 'Search for a village, road or landmark, then verify the exact point for this call or supervised test. Search results and map clicks are candidates, not verified pickup locations. Do not enter patient names or phone numbers in map search.'));
+        box.append(el('p', 'mapa-voice-note', 'Keep patient details out of map search. Verify the pickup before saving.'));
         const areaRow = el('label', 'mapa-voice-field'), area = el('select'); area.name = 'location_scope'; area.disabled = !!pending;
         areaRow.append(el('span', '', 'Search area'));
         for (const [value, label] of [['asr', 'ASR district and nearby areas'], ['india', 'Anywhere in India']]) { const option = el('option', '', label); option.value = value; area.append(option); }
@@ -1156,8 +1254,8 @@
         searchButton.disabled = !!pending; query.disabled = !!pending; searchRow.append(searchButton); results.setAttribute('aria-live', 'polite'); mapNode.setAttribute('aria-label', 'Pickup map. Click anywhere to select a candidate; coordinates can also be entered in the form.');
         const googleLink = el('a', 'mapa-voice-button', 'Open Google Maps ↗');
         googleLink.href = googleSearchUrl(''); googleLink.target = '_blank'; googleLink.rel = 'noopener noreferrer';
-        googleLink.setAttribute('aria-label', 'Open Google Maps in a new tab'); searchRow.append(googleLink);
-        const googleNote = el('p', 'mapa-voice-note', 'Google Maps opens in a new tab using your browser’s Google account. It searches the place text above without the district filter. To bring a pin back, right-click the exact point in Google Maps, copy its latitude and longitude, then paste below.');
+        googleLink.setAttribute('aria-label', 'Open Google Maps in a new tab');
+        const googleNote = el('p', 'mapa-voice-note', 'Google Maps opens in a new tab. Copy the exact pin’s latitude and longitude and paste them below.');
         const pasteRow = el('div', 'mapa-voice-search-row'), pasted = field(pasteRow, 'Paste Google Maps coordinates', 'pickup_pasted_coordinates', '');
         pasted.placeholder = 'Latitude, longitude'; pasted.maxLength = 96; pasted.autocomplete = 'off'; pasted.disabled = !!pending;
         const pasteStatus = el('p', 'mapa-voice-note'); pasteStatus.setAttribute('aria-live', 'polite');
@@ -1172,14 +1270,15 @@
         applyPin.disabled = !!pending; pasteRow.append(applyPin);
         const providerStatus = el('p', 'mapa-voice-note');
         const configured = pickupMapConfig.google_maps_configured === true;
-        providerStatus.textContent = configured ? 'Loading Google Maps…' : 'Search villages, railway stations, hospitals and landmarks. Try “Araku railway station” or a station code. Select a result to fill the pickup form; Search map adds online matches. Only the place query goes to OpenStreetMap search (Photon).';
-        box.append(areaRow, searchRow, googleNote, pasteRow, pasteStatus, providerStatus, results, mapNode); parent.append(box);
+        providerStatus.textContent = configured ? 'Loading Google Maps…' : 'Search uses OpenStreetMap (Photon). Choose a result to fill the pickup draft.';
+        const mapOptions=el('details','mapa-voice-map-options');mapOptions.append(el('summary','','Search area & Google Maps pin'),areaRow,googleLink,googleNote,pasteRow,pasteStatus);
+        box.append(searchRow, results, mapNode, providerStatus, mapOptions); parent.append(box);
         let map = null, marker = null, googleMap = null, googleMarker = null, googleClick = null, googlePlaces = null, fleetMarkers=[];
         let searchVersion = 0, searchTimer = null, pointVersion = 0, pointTimer = null, removed = false, mapReady = null, mode = 'local';
         let autoAddress = inputs.pickup_address.value.startsWith('Pinned pickup · ') ? inputs.pickup_address.value : '';
         const summary = el('div', 'mapa-voice-pin-summary'); summary.setAttribute('aria-live', 'polite'); box.append(summary);
         summary.textContent = 'Choose a search result, tap the map, or drag the pickup pin. Coordinates and pickup description update here.';
-        const mapStatus = el('p', 'mapa-voice-note', 'District overview only; this is not a surveyed boundary. Verify the exact pickup or test point before review.'); box.append(mapStatus);
+        const mapStatus = el('p', 'mapa-voice-note mapa-voice-map-status', 'District overview only; this is not a surveyed boundary. Verify the exact pickup or test point before review.'); box.append(mapStatus);
         function pointText(point) { return `${point.latitude.toFixed(6)}, ${point.longitude.toFixed(6)}`; }
         function describePoint(point, context = '') {
             const label = `Pinned pickup · ${context ? context.slice(0, 880) + ' · ' : ''}${pointText(point)}`;
@@ -1256,6 +1355,7 @@
                 if(!distinct&&['crew_phone','hardware_gps'].includes(row.gps_source))fleet.push({...row,vehicle_registration:row.registration,name:row.driver_name,location_recorded_at:row.gps_recorded_at,location_source:row.gps_source==='hardware_gps'?'hardware_gps':'driver_phone_gps'});
             }
             const rows=new Map(fleet.map(row=>[row.vehicle_id+':'+row.location_source,row]));for(const row of recommendations?.ranked||[])rows.set(row.vehicle_id+':driver_phone_gps',row);
+            const currentDirectory=ambulanceDirectory(selected||{},candidates,unavailable,'',false);
             for(const row of [...rows.values()].slice(0,400)){
                 const point=pickupCandidate(row),time=new Date(row.location_recorded_at).getTime(),now=Number.isFinite(deskSnapshot?.server_time)?deskSnapshot.server_time+(Date.now()-(deskLoadedAt||Date.now())):Date.now();
                 if(!point||!Number.isFinite(time)||time<=0||time>now+30000||!['driver_phone_gps','hardware_gps'].includes(row.location_source))continue;
@@ -1263,7 +1363,8 @@
                 // Keep recent out-of-area fixes visible. A distant stale fix is
                 // historical evidence, not a useful dispatch-map position.
                 if(!showDispatchPosition(point,stale)){remoteStalePositions++;continue;}
-                const text=[row.vehicle_registration,row.name,row.location_source==='hardware_gps'?'Ambulance device GPS':'Driver phone GPS',date(row.location_recorded_at),stale?'Stale last reported position':'Recent reported position',gpsQuality(row)].filter(Boolean).join(' · ');
+                const mapping=crewMapping(withCurrentCrewMapping(row,currentDirectory));
+                const text=[mapping.summary,...mapping.notes,row.location_source==='hardware_gps'?'Ambulance device GPS':'Driver phone GPS',date(row.location_recorded_at),stale?'Stale last reported position':'Recent reported position',gpsQuality(row)].filter(Boolean).join(' · ');
                 if(map&&window.L?.circleMarker){const pin=window.L.circleMarker([point.latitude,point.longitude],{radius:8,color,fillColor:fill,fillOpacity:stale?.6:1}).addTo(map);pin.bindTooltip?.(el('span','',text));fleetMarkers.push(pin);points.push([point.latitude,point.longitude]);}
                 else if(googleMap&&window.google?.maps?.Circle){fleetMarkers.push(new window.google.maps.Circle({map:googleMap,center:{lat:point.latitude,lng:point.longitude},radius:30,strokeColor:color,fillColor:fill,fillOpacity:stale?.6:1,clickable:false}));}
             }
@@ -1449,11 +1550,13 @@
         if (!enrollments.length) { section.append(el('p', 'mapa-voice-note', 'No crew registrations have been submitted.')); return; }
         const layout = el('div', 'mapa-voice-layout mapa-crew-review'), list = el('aside', 'mapa-voice-list'), detail = el('section', 'mapa-voice-detail');
         list.setAttribute('aria-label', 'Crew registrations');
-        for (const row of enrollments) { const choose = button('', () => { enrollmentSelected = row.id; render(); }); choose.disabled = !!pending; choose.className += ' mapa-voice-call'; choose.append(el('strong', '', string(row.name) || row.id), badge(row.status, row.status === 'approved' ? 'is-success' : ''), el('small', '', string(row.ambulance_registration)), el('small', '', date(row.created_at))); list.append(choose); }
+        for (const row of enrollments) { const links = enrollmentLinkSummary(row); const choose = button('', () => { enrollmentSelected = row.id; render(); }); choose.disabled = !!pending; choose.className += ' mapa-voice-call'; choose.append(el('strong', '', string(row.name) || row.id), badge(links.label, row.status === 'approved' && !links.missing.length ? 'is-success' : ''), el('small', '', string(row.ambulance_registration)), el('small', '', date(row.created_at))); list.append(choose); }
         layout.append(list, detail); section.append(layout);
         const row = enrollments.find(row => row.id === enrollmentSelected);
         if (!row) { detail.append(el('p', 'mapa-voice-note', 'Select a registration to review the driver, photograph and requested ambulance. Showing the latest 100 records.')); return; }
-        detail.append(el('h4', '', string(row.name) || 'Crew member'), badge(row.status, row.status === 'approved' ? 'is-success' : ''));
+        const links = enrollmentLinkSummary(row);
+        detail.append(el('h4', '', string(row.name) || 'Crew member'), badge(links.label, row.status === 'approved' && !links.missing.length ? 'is-success' : ''));
+        if (links.warning) detail.append(el('p', links.missing.length ? 'mapa-voice-warning' : 'mapa-voice-note', links.warning));
         recordFields(detail, [['Contact email (self-reported)', row.email], ['Phone', row.phone], ['Requested ambulance registration', row.ambulance_registration], ['Requested ambulance name', row.ambulance_name], ['Reported hospital / base', row.hospital_name], ['Submitted', date(row.created_at)], ['Device location at registration', pickupCandidate(row) ? `${Number(row.latitude).toFixed(6)}, ${Number(row.longitude).toFixed(6)}` : 'Unavailable'], ['Accuracy', Number.isFinite(Number(row.accuracy_m)) && row.accuracy_m != null ? `±${Number(row.accuracy_m).toFixed(0)} m` : 'Unavailable'], ['Location fix time', row.recorded_at ? date(row.recorded_at) : 'Unavailable']]);
         privatePhoto(detail, row.selfie_media_id, 'View private registration selfie');
         if (row.status === 'pending') {
@@ -1477,7 +1580,7 @@
             const reject = button('Reject registration', () => { if (!reason.value.trim()) { announce('Enter the reason for rejection.', true); return; } mutateEnrollment(row, 'reject', { expected_revision: row.revision, reason: reason.value.trim() }, 'Crew registration rejected.'); }); reject.disabled = !!pending; detail.append(reject);
         } else if (row.status === 'approved') {
             const ambulanceTile=el('section','mapa-voice-result');ambulanceTile.append(el('h4','','Ambulance & assigned driver location'));
-            recordFields(ambulanceTile, [['Ambulance', row.ambulance_registration], ['Assigned driver', row.name]]);
+            recordFields(ambulanceTile, [['Registered ambulance', row.ambulance_registration], ['Registered crew', row.name]]);
             for (const [key, label] of [['driver_phone', 'Driver phone GPS'], ['ambulance_gps', 'Ambulance GPS device']]) {
                 const fix = row.locations?.[key];
                 recordFields(ambulanceTile, [[label, fix && pickupCandidate(fix) ? `${Number(fix.latitude).toFixed(6)}, ${Number(fix.longitude).toFixed(6)} · ${fix.stale ? 'Stale' : 'Recent'} · ${date(fix.recorded_at)}` : 'No GPS report received']]);
@@ -2075,6 +2178,7 @@
             if (row) {
                 detail.append(el('strong', '', (string(row.vehicle_name) || row.vehicle_id) + ' · ' + string(row.vehicle_registration)));
                 detail.append(el('p', '', [ambulanceContext(row), string(row.name) && 'Crew: ' + row.name, string(row.vehicle_type)].filter(Boolean).join(' · ')));
+                appendCrewMapping(detail, row);
                 const availability=ambulanceAvailabilityEvidence(row);if(availability)detail.append(el('p','mapa-voice-note',availability));
                 const distance = typeof row.distance_km === 'number' && Number.isFinite(row.distance_km) ? row.distance_km.toFixed(1) + ' km straight-line' : 'Distance unavailable';
                 detail.append(el('p', 'mapa-voice-note', distance + ' · ' + (row.simulated ? 'Simulated fix' : 'GPS fix') + ': ' + date(row.fix_recorded_at)));
@@ -2115,6 +2219,7 @@
                 for (const row of blocked) {
                     const item = el('div', 'mapa-voice-warning');
                     item.append(el('strong', '', [row.vehicle_registration, row.vehicle_name].map(string).filter(Boolean).join(' · ') || row.vehicle_id), el('p', '', ambulanceContext(row)), el('p', '', string(row.message)));
+                    appendCrewMapping(item, row);
                     const availability=ambulanceAvailabilityEvidence(row);if(availability)item.append(el('p','mapa-voice-note',availability));
                     if (row.order_id) item.append(el('small', '', 'Existing call: ' + string(row.order_id) + ' · ' + string(row.order_status)));
                     list.append(item);
@@ -2298,16 +2403,17 @@
         // Keep Operations and any unfinished call in their original tabs.
         window.open('/call-intake/', '_blank', 'noopener,noreferrer');
     }
-    // Route only the native sidebar and map toolbar's authorized call-create actions.
-    // Capture before Ember handles its old create-order transition; preserve disabled actions.
+    // Keep the sidebar's authorized New Call action on the operator desk.
+    // The map toolbar keeps its native transport-order form and route planning.
     function routeNativeCreate(event) {
         if (standalone || event.defaultPrevented || (event.button !== undefined && event.button !== 0) || !/^\/fleet-ops(?:\/|$)/.test(location.pathname)) return;
-        const trigger = event.target?.closest?.('button.fleet-ops-sidebar-primary-action, a.fleet-ops-sidebar-primary-action, button#map-toolbar-create-order-button');
+        const trigger = event.target?.closest?.('button.fleet-ops-sidebar-primary-action, a.fleet-ops-sidebar-primary-action');
         if (!trigger || trigger.disabled || trigger.getAttribute('aria-disabled') === 'true') return;
         event.preventDefault(); event.stopImmediatePropagation();
         openOperatorTab();
     }
     document.addEventListener('click', routeNativeCreate, true);
+    let launchInFlight = false;
     function mount() {
         if (standalone) { if (!dialog) { open(); consumeLaunch(); } return; }
         // The native sidebar already provides New Call; a floating duplicate covers table pagination.
@@ -2317,25 +2423,44 @@
         if (entry && entry.hidden === ready) entry.hidden = !ready;
     }
     async function consumeLaunch() {
+        if (!standalone) return;
         const fragment=location.hash;
-        if(fragment==='#launching') { announce('Opening with your MAPA operator session…'); return; }
+        const protectedState = () => session || pending || dirty || resourceEditor || manualEdit || editDraft;
+        if(fragment==='#launching') {
+            if (!launchInFlight && !busy && !protectedState()) announce('Opening with your MAPA operator session…');
+            return;
+        }
         if(!fragment.startsWith('#launch=')) return;
         const ticket=fragment.slice(8);
+        // Remove even ignored handoffs; a fragment must never replace current work.
         history.replaceState(null,'',location.pathname+location.search);
+        if (launchInFlight || busy || protectedState()) return;
         if(!/^[a-f0-9]{64}$/.test(ticket)) { announce('Invalid launch link. Sign in below.',true); return; }
+        const current = epoch;
+        let installedSession = null, ownsLock = true;
+        const mayUpdate = () => current === epoch && session === installedSession
+            && !pending && !dirty && !resourceEditor && !manualEdit && !editDraft && (ownsLock || !busy);
+        launchInFlight = true;
         lock(true); announce('Checking your MAPA operator session…');
         try {
             const data=await request('/intake-launch/exchange',{native:true,login:true,body:JSON.stringify({ticket})});
+            if (!mayUpdate()) return;
             if(data.contract!=='mapa-native-mobile-v1'||!/^[a-f0-9]{64}$/.test(data.token)||!Number.isFinite(data.expires_at)||data.expires_at<=Date.now()||!safeId(data.user?.id)||!safeId(data.user?.company_id)||!['admin','superadmin'].includes(data.user?.role)) throw new Error('Operator launch could not be verified. Sign in below.');
-            session={token:data.token,expires:data.expires_at,role:data.user.role,name:string(data.user.name),user:data.user.id,company:data.user.company_id};
-            lock(false); await loadCalls(); announce('Opened from your authenticated MAPA Operations session.');
-        } catch(error) { announce(error.message,true); }
-        finally { lock(false); render(); }
+            installedSession=session={token:data.token,expires:data.expires_at,role:data.user.role,name:string(data.user.name),user:data.user.id,company:data.user.company_id};
+            lock(false); ownsLock = false;
+            await loadCalls();
+            if (mayUpdate() && !lastError) announce('Opened from your authenticated MAPA Operations session.');
+        } catch(error) { if (mayUpdate()) announce(error.message,true); }
+        finally {
+            launchInFlight = false;
+            if (mayUpdate()) { if (ownsLock) lock(false); render(); }
+        }
     }
     let scheduled = false;
     const observer = new MutationObserver(() => { if (!scheduled) { scheduled = true; requestAnimationFrame(() => { scheduled = false; mount(); }); } });
     observer.observe(document.documentElement, { childList: true, subtree: true });
     window.addEventListener('popstate', mount);
+    if (standalone) window.addEventListener('hashchange', () => { if (!dialog) mount(); else consumeLaunch(); });
     window.addEventListener('mapa:open-voice', event => { event.preventDefault(); if (/^\/fleet-ops(?:\/|$)/.test(location.pathname)) openOperatorTab(); });
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once: true }); else mount();
 })();

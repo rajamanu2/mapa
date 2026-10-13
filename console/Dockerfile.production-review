@@ -5,8 +5,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 FROM dependencies AS prepared
 COPY . .
-ENV NODE_ENV=production JOBS=1 NODE_OPTIONS=--max-old-space-size=3072
+ENV NODE_ENV=production EMBER_ENV=production JOBS=1 NODE_OPTIONS=--max-old-space-size=3072
 ENV DISABLE_RUNTIME_CONFIG=false API_HOST=/api API_NAMESPACE=int/v1
+ENV SOCKETCLUSTER_HOST=app.itda.asrhealth.in SOCKETCLUSTER_SECURE=true SOCKETCLUSTER_PORT=443
 RUN node scripts/mapa-customize.mjs && node scripts/install-mapa-caller-phone.mjs && node scripts/install-mapa-optional-sections.mjs && node scripts/install-mapa-source-panels.mjs && node scripts/install-mapa-production-guards.mjs && node scripts/test-production-guards.mjs
 FROM prepared AS build
 RUN pnpm exec ember build --environment=production --output-path=dist

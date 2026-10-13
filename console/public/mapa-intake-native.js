@@ -180,7 +180,7 @@
 
         const listeners = [], serviceListeners = [];
 
-        function on(target, name, handler) { target.addEventListener(name, handler); listeners.push([target, name, handler]); }
+        function on(target, name, handler, capture = false) { target.addEventListener(name, handler, capture); listeners.push([target, name, handler, capture]); }
 
         function serviceOn(target, name, handler) { target.on?.(name, handler); serviceListeners.push([target, name, handler]); }
 
@@ -213,6 +213,15 @@
 
         }
 
+        function guardNativeViewChange(event) {
+            if (event.defaultPrevented || !intakeFrame
+                || !event.target?.closest?.('#ops-map-view-button,#ops-table-view-button,#ops-kanban-view-button')) return;
+            if (window.mapaCloseIntake() === false) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+            }
+        }
+
         function mountIntakeTab() {
 
             const board = document.getElementById('ops-kanban-view-button');
@@ -222,12 +231,6 @@
             if (!intakeTab) {
 
                 intakeTab = action('New Call', openIntake); intakeTab.id = 'mapa-new-call-view-button';
-
-                on(document, 'click', event => {
-
-                    if (event.target?.closest?.('#ops-map-view-button,#ops-table-view-button,#ops-kanban-view-button')) closeIntake();
-
-                });
 
             }
 
@@ -297,6 +300,8 @@
 
         window.mapaOpenIntake=openIntake;
         window.mapaCloseIntake=()=>{const guard=intakeFrame?.contentWindow?.mapaIntakeCanLeave;if(typeof guard==='function'&&!guard())return false;closeIntake();return true;};
+        // Run before native view handlers so declining cannot discard a draft or pending receipt.
+        on(document, 'click', guardNativeViewChange, true);
 
         function clearView() {
 
@@ -373,9 +378,7 @@
 
                 const controls = node('div', 'mapa-intake-controls'), refresh = action('Refresh calls', () => { blocked = false; lastAttempt = 0; poll(true); });
 
-                const desk = node('a', 'mapa-intake-action', 'Open operator desk ↗'); desk.href = '/call-intake/'; desk.target = '_blank'; desk.rel = 'noopener noreferrer';
-
-                desk.addEventListener('click',event=>{event.preventDefault();openIntake();});
+                const desk = action('Open call desk', () => openIntake());
 
                 controls.append(refresh, desk);
 

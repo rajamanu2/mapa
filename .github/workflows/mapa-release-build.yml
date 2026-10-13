@@ -1,0 +1,60 @@
+name: Build MAPA production candidate
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'console/**'
+      - 'asr/mobile/ProviderGpsSnapshot*.php'
+      - 'deploy/full/**'
+      - '.github/workflows/mapa-release-build.yml'
+permissions:
+  contents: read
+concurrency:
+  group: mapa-release-build-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Check dispatch boundaries and changed UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test in dispatch-settings-route dispatch-status-copy fleet-linkage enrollment-links gps-device-layer feature-workspace intake-launch new-call-workbench command-desk-dom; do
+            node "console/scripts/test-mapa-${test}.cjs"
+          done
+          php -l asr/mobile/ProviderGpsSnapshotPolicy.php
+          php -l asr/mobile/ProviderGpsSnapshotService.php
+          php asr/voice/tests/automatic-dispatch-scope.php
+          node console/scripts/test-mapa-product-labels.mjs
+      - name: Prepare isolated production sources
+        run: python3 console/scripts/prepare-production-review.py runtime/console-source
+      - name: Set public runtime origin
+        run: >-
+          node --input-type=module -e
+          "import fs from 'node:fs'; import {makeRuntimeConfig} from './cloud/runtime-config.mjs';
+          fs.writeFileSync('runtime/console-source/fleetbase.config.json', JSON.stringify(makeRuntimeConfig('https://app.itda.asrhealth.in'), null, 2));"
+      - name: Compile pinned production console
+        run: docker buildx build -f runtime/console-source/Dockerfile.production-review --target artifact --output type=local,dest=runtime/console-release runtime/console-source
+      - name: Verify and package compiled output
+        env:
+          MAPA_BUILD_SHA: ${{ github.sha }}
+        run: |
+          python3 console/scripts/finalize-production-review.py --built runtime/console-release/console --public runtime/console-source/public
+          node deploy/full/verify-console.mjs runtime/console-release/console
+          tar -C runtime/console-release -czf runtime/mapa-production-console.tar.gz console release-manifest.json
+          sha256sum runtime/mapa-production-console.tar.gz > runtime/mapa-production-console.tar.gz.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mapa-production-console-${{ github.sha }}
+          path: |
+            runtime/mapa-production-console.tar.gz
+            runtime/mapa-production-console.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 14
+      - name: Record scope
+        run: echo 'Compiled console candidate for app.itda.asrhealth.in. No server deployment, database writes, crew notifications, or dispatch were performed. API runtime and supervised phone acceptance remain separate gates.' >> "$GITHUB_STEP_SUMMARY"

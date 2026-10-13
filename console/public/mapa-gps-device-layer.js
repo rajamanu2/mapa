@@ -19,8 +19,9 @@
             if(!id(row?.id)||seen.has(row.id)||typeof row.mapped!=='boolean')throw new Error('GPS device identity is invalid.');seen.add(row.id);
             const rawLocation=row.location??{latitude:row.latitude,longitude:row.longitude,recorded_at:row.recorded_at,provider_received_at:row.provider_received_at,accuracy_m:row.accuracy_m??null};
             const location=position({...rawLocation,stale:rawLocation.stale===true||row.stale===true||feed.feed_stale===true},now);
-            return {...row,label:text(row.provider_label||row.label||row.external_id)||row.id,registration:row.mapped?text(row.registration):'',location,
+            const device={...row,label:text(row.provider_label||row.label||row.external_id)||row.id,registration:row.mapped?text(row.registration):'',location,
                 state:location?(row.connected===false||row.gps_on===false||row.provider_status==='offline'?'offline':location.stale?'stale':'fresh'):'no_position'};
+            return {...device,appearance:markerStatus(device,now)};
         });
         return {...feed,server_time:now,devices};
     }
@@ -54,7 +55,33 @@
         return devices.filter(row=>!term||[row.registration,row.label,row.external_id,row.id,row.mapped?'mapped':'unmapped',row.state].join(' ').toLowerCase().includes(term))
             .slice().sort((a,b)=>Number(b.mapped)-Number(a.mapped)||fleetName(a).localeCompare(fleetName(b)));
     }
-    const pure={same,position,snapshot,bounds,trailSegments,aged,escape,timestamp,mapPadding,fleetRows,fleetName,matchingVehicle};
+    function markerStatus(row,now){
+        if(!row.mapped)return {color:'#7c3aed',label:'Unmapped GPS',key:'unmapped'};
+        if(Number.isSafeInteger(row.offer_expires_at)&&row.offer_expires_at>now)return {color:'#eab308',label:'Dispatch offer pending',key:'offered'};
+        if(row.state==='offline')return {color:'#dc2626',label:'Offline · last-known GPS',key:'offline'};
+        if(row.state!=='fresh')return {color:'#64748b',label:'GPS stale / unavailable',key:'stale'};
+        if(row.provider_status==='Running'||(Number.isFinite(row.speed_kmh)&&row.speed_kmh>3))return {color:'#ea580c',label:'Travelling · GPS movement',key:'travelling'};
+        return {color:'#16a34a',label:'Active · recent GPS',key:'active'};
+    }
+    function ambulanceIcon(row){
+        const color=row.appearance?.color||'#64748b';
+        // Fixed SVG geometry and palette; no labels or external data enter the SVG.
+        const safeColor=/^#[0-9a-f]{6}$/i.test(color)?color:'#64748b';
+        return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="14" fill="'+safeColor+'" stroke="white" stroke-width="3"/><path d="M10 18h19l8 9v8H10z" fill="white"/><path d="M29 21v7h6z" fill="#0f172a"/><path d="M18 21h4v4h4v4h-4v4h-4v-4h-4v-4h4z" fill="'+safeColor+'"/><rect x="19" y="13" width="9" height="4" rx="2" fill="white"/><circle cx="16" cy="35" r="4" fill="#0f172a" stroke="white" stroke-width="2"/><circle cx="32" cy="35" r="4" fill="#0f172a" stroke="white" stroke-width="2"/></svg>');
+    }
+    function nativeMarkerAppearance(record,device){
+        if(device?.appearance)return device.appearance;
+        if(record?.online===false)return {color:'#dc2626',key:'offline',label:'Offline · native record'};
+        if(record?.online===true)return {color:'#16a34a',key:'active',label:'Online · GPS freshness unverified'};
+        return {color:'#64748b',key:'stale',label:'Status unavailable'};
+    }
+    function tripPoint(point){return point&&typeof point.latitude==='number'&&typeof point.longitude==='number'&&Number.isFinite(point.latitude)&&Number.isFinite(point.longitude)&&Math.abs(point.latitude)<=90&&Math.abs(point.longitude)<=180&&(point.latitude!==0||point.longitude!==0)?[point.latitude,point.longitude]:null;}
+    function routePoints(route,now){
+        if(!Number.isFinite(now)||!route||!Number.isSafeInteger(route.expires_at)||route.expires_at<=now||!Array.isArray(route.coordinates)||route.coordinates.length<2||route.coordinates.length>10000)return [];
+        const points=route.coordinates.map(p=>Array.isArray(p)&&p.length===2?tripPoint({latitude:p[1],longitude:p[0]}):null);
+        return points.every(Boolean)?points:[];
+    }
+    const pure={same,position,snapshot,bounds,trailSegments,aged,escape,timestamp,mapPadding,fleetRows,fleetName,matchingVehicle,markerStatus,ambulanceIcon,nativeMarkerAppearance,tripPoint,routePoints};
     if(typeof document==='undefined'){if(typeof module==='object'&&module.exports)module.exports=pure;return;}
     if(typeof window.define!=='function')return;
     const initialized=new WeakSet();
@@ -68,11 +95,66 @@
         const manager=owner.lookup('service:map-manager')||owner.lookup('service:leaflet-map-manager');
         if(!session||!user||!native?.getHeaders||!manager)return;
         const style=document.createElement('style');style.textContent='.mapa-gps-controls{display:flex;gap:6px;align-items:center;margin-left:auto}.mapa-gps-controls button,.mapa-gps-panel button{border:1px solid #cbd5e1;border-radius:7px;background:#f8fafc;color:#0f172a;padding:6px 10px;font:inherit;font-size:12px;cursor:pointer}.mapa-gps-panel{position:fixed;right:16px;top:104px;z-index:9000;width:min(480px,calc(100vw - 32px));max-height:70vh;overflow:auto;background:white;color:#0f172a;border:1px solid #cbd5e1;border-radius:12px;padding:16px;box-shadow:0 12px 36px #0003}.mapa-gps-panel h3{font-size:16px;font-weight:700;margin:0 0 10px}.mapa-gps-panel p{font-size:12px;margin:6px 0}.mapa-gps-panel article{border-top:1px solid #e2e8f0;padding:10px 0}.mapa-gps-panel strong{font-size:13px}.mapa-gps-panel .mapa-gps-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.mapa-gps-detail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}.mapa-gps-detail div{border:1px solid #e2e8f0;border-radius:7px;padding:8px;min-width:0}.mapa-gps-detail dt{font-size:11px;color:#64748b}.mapa-gps-detail dd{font-size:13px;font-weight:600;margin:3px 0 0;overflow-wrap:anywhere}.mapa-gps-detail-heading{font-weight:700;margin:14px 0 5px}.dark .mapa-gps-panel{background:#111827;color:#f8fafc;border-color:#475569}.dark .mapa-gps-controls button,.dark .mapa-gps-panel button{background:#1f2937;color:#f8fafc;border-color:#475569}.dark .mapa-gps-detail div{border-color:#475569}.dark .mapa-gps-detail dt{color:#cbd5e1}';document.head.append(style);
+        // Match the console's actual dark-theme class as well as Tailwind's dark class.
+        // These rules are scoped to this drawer; native map controls keep their styling.
+        style.textContent+=`
+            .mapa-gps-panel{--panel-bg:#fff;--panel-card:#f8fafc;--panel-text:#172033;--panel-muted:#64748b;--panel-border:#e2e8f0;--panel-hover:#eef2f7;box-sizing:border-box;right:16px;top:100px;width:min(432px,calc(100vw - 32px));max-height:calc(100dvh - 120px);padding:0 18px 18px;background:var(--panel-bg);color:var(--panel-text);border:1px solid var(--panel-border);border-radius:12px;box-shadow:0 16px 48px #0005;font-family:inherit;scrollbar-width:thin;scrollbar-color:var(--panel-border) transparent;overscroll-behavior:contain}
+            :is(.dark,.dark-theme) .mapa-gps-panel{--panel-bg:#111827;--panel-card:#1f2937;--panel-text:#f1f5f9;--panel-muted:#a6b3c5;--panel-border:#374151;--panel-hover:#2b3749;background:var(--panel-bg);color:var(--panel-text);border-color:var(--panel-border);color-scheme:dark}
+            .mapa-gps-panel>h3{position:sticky;top:0;z-index:2;background:var(--panel-bg);margin:0 -18px;padding:17px 78px 14px 18px;border-bottom:1px solid var(--panel-border);font-size:14px;line-height:20px;letter-spacing:.01em}
+            .mapa-gps-panel>.mapa-gps-actions:nth-child(2){position:sticky;top:52px;z-index:3;background:var(--panel-bg);margin:0 -18px 18px;padding:10px 18px;border-bottom:1px solid var(--panel-border);display:flex;gap:6px;flex-wrap:wrap}
+            .mapa-gps-panel>.mapa-gps-actions:nth-child(2)>button:last-child{position:absolute;right:12px;top:-43px;padding:5px 9px;color:var(--panel-muted)}
+            .mapa-gps-panel button,:is(.dark,.dark-theme) .mapa-gps-panel button{border:1px solid var(--panel-border);border-radius:6px;background:var(--panel-card);color:var(--panel-text);font:inherit;font-size:11px;line-height:18px;padding:6px 9px;cursor:pointer}
+            .mapa-gps-panel button:hover:not(:disabled){background:var(--panel-hover);border-color:#64748b}
+            .mapa-gps-panel button:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+            .mapa-gps-panel button:disabled{opacity:.45;cursor:not-allowed}
+            .mapa-gps-panel>h4{font-size:18px;font-weight:700;line-height:1.3;margin:0 0 6px;overflow-wrap:anywhere}
+            .mapa-gps-panel p{color:var(--panel-muted);font-size:12px;line-height:1.6;margin:6px 0}
+            .mapa-gps-panel .mapa-gps-status{display:inline-flex;align-items:center;gap:7px;padding:5px 9px;margin:6px 0 12px;border:1px solid var(--panel-border);border-radius:6px;background:var(--panel-card);color:var(--panel-text);font-size:11px;font-weight:600}
+            .mapa-gps-status:before{content:'';width:7px;height:7px;border-radius:50%;background:#94a3b8;flex-shrink:0}
+            .mapa-gps-status[data-status=offline]:before{background:#f87171}.mapa-gps-status[data-status=active]:before{background:#4ade80}.mapa-gps-status[data-status=travelling]:before{background:#fb923c}.mapa-gps-status[data-status=offered]:before{background:#facc15}.mapa-gps-status[data-status=unmapped]:before{background:#c084fc}
+            .mapa-gps-panel .mapa-gps-empty-trip{padding:12px;border:1px dashed var(--panel-border);border-radius:8px;background:var(--panel-card);margin:0 0 18px}
+            .mapa-gps-panel .mapa-gps-detail-heading{font-size:11px;line-height:18px;text-transform:uppercase;letter-spacing:.07em;color:var(--panel-muted);font-weight:700;margin:20px 0 8px;padding-top:14px;border-top:1px solid var(--panel-border)}
+            .mapa-gps-panel .mapa-gps-detail{gap:0;margin:0;background:var(--panel-card);border:1px solid var(--panel-border);border-radius:8px;overflow:hidden}
+            .mapa-gps-panel .mapa-gps-detail>div{padding:10px 12px;border:0;border-radius:0;border-bottom:1px solid var(--panel-border)}
+            .mapa-gps-panel .mapa-gps-detail>div:nth-child(odd){border-right:1px solid var(--panel-border)}
+            .mapa-gps-panel .mapa-gps-detail dt,:is(.dark,.dark-theme) .mapa-gps-panel .mapa-gps-detail dt{color:var(--panel-muted);font-size:10px}
+            .mapa-gps-panel .mapa-gps-detail dd{color:var(--panel-text);font-size:12px;line-height:1.5;font-weight:500;margin-top:4px}
+            .mapa-gps-panel article{border-color:var(--panel-border)}
+            @media(max-width:600px){.mapa-gps-panel{right:8px;top:96px;width:calc(100vw - 16px);max-height:calc(100dvh - 108px)}}
+        `;
         let scope=null,data=null,lastAttempt=0,error='',destroyed=false,busy=false,controller=null,version=0,controls=null,panel=null,button=null,shown=false,selectedDeviceId=null,followDeviceId=null,journey=null,journeyError='',journeyController=null,journeyVersion=0,trailLayers=[],adapter=null,receivedAt=0,drawnStates='';
         const clock=()=>typeof performance!=='undefined'&&typeof performance.now==='function'?performance.now():Date.now();
+        let journeyReceivedAt=0;
+        const journeyNow=()=>journey?.server_time+Math.max(0,clock()-journeyReceivedAt);
         const displayed=()=>aged(data,Math.max(0,clock()-receivedAt));
-        const states=feed=>JSON.stringify(feed?.devices.map(row=>[row.id,row.state])||[]);
+        const states=feed=>JSON.stringify(feed?.devices.map(row=>[row.id,row.state,row.appearance.key])||[]);
         const pins=new Map();let legacyMap=null,legacyAdapter=null,drawGeneration=0,labelsVisible=true;
+        const nativeIcons=new Map(),store=owner.lookup('service:store');
+        function restoreNativeIcons(){
+            for(const [layer,saved] of nativeIcons)if(layer.options?.icon===saved.applied)layer.setIcon?.(saved.original);
+            nativeIcons.clear();
+        }
+        function syncNativeIcons(){
+            const map=manager.livemap?.map||manager.map,L=window.leaflet||window.L;if(!map?.eachLayer||!L?.icon||!store?.peekRecord)return;
+            const devices=displayed()?.devices||[],seen=new Set();
+            map.eachLayer(layer=>{
+                if(!['vehicle','driver'].includes(layer.record_type)||!layer.record_id||typeof layer.setIcon!=='function')return;
+                const record=store.peekRecord(layer.record_type,layer.record_id);if(!record)return;
+                // Resolve exact native IDs only. Never match a crew by its visible name.
+                const vehicle=layer.record_type==='vehicle'?record:record.vehicle;
+                const vehicleId=vehicle?.public_id||vehicle?.id;
+                const device=devices.find(row=>row.mapped&&(row.vehicle_id===vehicleId||(vehicle?.id&&row.vehicle_uuid===vehicle.id)));
+                const appearance=nativeMarkerAppearance(record,device),url=ambulanceIcon({appearance});seen.add(layer);
+                let saved=nativeIcons.get(layer);
+                if(saved&&saved.url===url&&layer.options?.icon===saved.applied)return;
+                if(!saved){saved={original:layer.options?.icon};nativeIcons.set(layer,saved);}
+                else if(layer.options?.icon!==saved.applied)saved.original=layer.options?.icon;
+                saved.url=url;saved.applied=L.icon({iconUrl:url,iconSize:[48,48],iconAnchor:[24,24]});layer.setIcon(saved.applied);
+            });
+            for(const [layer,saved] of nativeIcons)if(!seen.has(layer)){
+                if(layer.options?.icon===saved.applied)layer.setIcon?.(saved.original);nativeIcons.delete(layer);
+            }
+        }
         let fleetPanel=null,fleetRoot=null,fleetBody=null,fleetSummary=null,fleetNotice=null,fleetScroll=null,fleetSearch=null,fleetMode='provider',fleetSignature='';
         const fleetStyle=document.createElement('style');fleetStyle.textContent=`
             #tabpanel-ambulances[data-mapa-gps-view="provider"] > :not(.mapa-gps-bottom){display:none!important}
@@ -105,7 +187,7 @@
             const map=manager.map;
             if(!map||!window.L?.marker||typeof map.addLayer!=='function')return null;
             if(map!==legacyMap){legacyMap=map;const markers=new Map();legacyAdapter={
-                addMarker(key,latitude,longitude,options){const marker=window.L.marker([latitude,longitude],{icon:window.L.icon({iconUrl:options.iconUrl,iconSize:[28,28],iconAnchor:[14,14]}),title:options.title}).addTo(map);marker.bindTooltip(options.tooltip,options.tooltipOptions);marker.on('click',options.onClick);markers.set(key,marker);return marker;},
+                addMarker(key,latitude,longitude,options){const marker=window.L.marker([latitude,longitude],{icon:window.L.icon({iconUrl:options.iconUrl,iconSize:options.iconSize,iconAnchor:[24,24]}),zIndexOffset:options.zIndexOffset,title:options.title,alt:options.title}).addTo(map);marker.bindTooltip(options.tooltip,options.tooltipOptions);marker.on('click',options.onClick);markers.set(key,marker);return marker;},
                 removeMarker(key){markers.get(key)?.remove();markers.delete(key);},fitBounds(box,options){map.fitBounds(box,options);},flyTo(latitude,longitude,zoom){map.flyTo([latitude,longitude],zoom);}
             };}return legacyAdapter;
         }
@@ -133,21 +215,34 @@
         function active(){return /^(?:console\.fleet-ops\.)?operations(?:\.|$)/.test(router?.currentRouteName||'')&&!!document.getElementById('map-topbar-container');}
         function clearPins(){drawGeneration++;for(const [key,entry] of pins){try{entry.adapter.removeMarker(key);}catch(_){entry.marker?.remove?.();entry.marker?.setMap?.(null);}}pins.clear();}
         function clearTrail(){for(const layer of trailLayers)try{layer.remove();}catch(_){}trailLayers=[];}
-        function reset(){version++;controller?.abort();journeyController?.abort();journeyVersion++;journeyController=null;journey=null;journeyError='';followDeviceId=null;clearTrail();controller=null;busy=false;data=null;error='';lastAttempt=0;receivedAt=0;drawnStates='';clearPins();panel?.remove();panel=null;shown=false;selectedDeviceId=null;controls?.remove();controls=null;button=null;clearFleet();}
+        function reset(){version++;controller?.abort();journeyController?.abort();journeyVersion++;journeyController=null;journey=null;journeyError='';followDeviceId=null;clearTrail();restoreNativeIcons();controller=null;busy=false;data=null;error='';lastAttempt=0;receivedAt=0;drawnStates='';clearPins();panel?.remove();panel=null;shown=false;selectedDeviceId=null;controls?.remove();controls=null;button=null;clearFleet();}
         function action(label,fn){const node=el('button',label);node.type='button';node.addEventListener('click',fn);return node;}
         function showDevice(row){if(selectedDeviceId!==row.id){clearTrail();followDeviceId=null;journey=null;journeyError='';journeyController?.abort();journeyVersion++;}selectedDeviceId=row.id;shown=true;renderPanel();if(panel)panel.scrollTop=0;if(row.mapped&&row.vehicle_uuid)loadJourney(row);}
-        async function loadJourney(row){
+        async function loadJourney(row,fit=true){
             if(!/^[a-f0-9-]{36}$/i.test(row.vehicle_uuid||''))return;
             const own=readScope();if(!own)return;const serial=++journeyVersion;journeyController?.abort();const pending=new AbortController();journeyController=pending;
             try{const headers=native.getHeaders();if(headers.Authorization!=='Bearer '+own.token)throw new Error('MAPA session changed.');
                 const response=await fetch(PATH+'/journey/'+encodeURIComponent(row.vehicle_uuid),{headers:{Authorization:headers.Authorization,Accept:'application/json'},credentials:'omit',cache:'no-store',redirect:'error',signal:pending.signal});
                 if(!response.ok)throw new Error(response.status===404?'No linked vehicle journey was found.':'Trip details could not be loaded.');
                 const result=await response.json();if(result?.contract!=='mapa-gps-journey-v1'||result.vehicle_id!==row.vehicle_id||!Array.isArray(result.trail)||result.trail.length>1000)throw new Error('Trip details did not match this ambulance.');
-                if(serial!==journeyVersion||selectedDeviceId!==row.id||!same(own,readScope()))return;journey=result;journeyError='';renderPanel();
-            }catch(e){if(serial===journeyVersion&&selectedDeviceId===row.id&&same(own,readScope())&&!pending.signal.aborted){journey=null;journeyError=e.message;renderPanel();}}
+                if(serial!==journeyVersion||selectedDeviceId!==row.id||!same(own,readScope()))return;journey=result;journeyReceivedAt=clock();journeyError='';renderPanel();drawTripStops(fit);
+            }catch(e){if(serial===journeyVersion&&selectedDeviceId===row.id&&same(own,readScope())&&!pending.signal.aborted){journey=null;clearTrail();journeyError=e.message;renderPanel();}}
             finally{if(serial===journeyVersion)journeyController=null;}
         }
         function centerDevice(row){if(!row.location)return;const map=currentAdapter(),p=row.location;map?.flyTo?.(p.latitude,p.longitude,14);}
+        function drawTripStops(fit=true){
+            clearTrail();const map=manager.map,L=window.L,nav=journey?.navigation;
+            if(!nav||!map||!L?.marker||typeof map.addLayer!=='function')return;
+            const points=[];
+            for(const [key,label,color] of [['pickup','Pickup','#2563eb'],['destination','Drop-off','#7c3aed']]){
+                const point=tripPoint(nav[key]);if(!point)continue;points.push(point);
+                const marker=L.circleMarker(point,{radius:10,color:'#fff',weight:3,fillColor:color,fillOpacity:1}).addTo(map);
+                marker.bindTooltip(escape(label+': '+(nav[key].label||'Saved trip location')),{permanent:true,direction:'top',offset:[0,-10]});trailLayers.push(marker);
+            }
+            const route=routePoints(nav.planned_road_route,journeyNow());
+            if(route.length){trailLayers.push(L.polyline(route,{color:'#ea580c',weight:5,opacity:.9}).addTo(map));points.push(...route);}
+            if(fit&&points.length)map.fitBounds(L.latLngBounds(points),{paddingTopLeft:[40,90],paddingBottomRight:[Math.min(520,window.innerWidth/2),60],maxZoom:14});
+        }
         function drawTripTrail(){
             clearTrail();const points=journey?.trail;if(!Array.isArray(points)||points.length<2){journeyError='No recorded GPS trail is available for this trip yet.';renderPanel();return;}
             const map=manager.map,L=window.L;if(!map||!L?.polyline||typeof map.addLayer!=='function'){journeyError='Open the MAPA map to view this trip trail.';renderPanel();return;}
@@ -159,7 +254,7 @@
             if(first&&lastPoint)map.fitBounds(L.latLngBounds([first,lastPoint,...segments.flat()]),{padding:[40,40],maxZoom:14});
             journeyError='';renderPanel();
         }
-        function details(group,fields){panel.append(el('h4',group));const list=el('dl');list.className='mapa-gps-detail';for(const [label,value] of fields){const item=el('div');item.append(el('dt',label),el('dd',value===null||value===undefined||value===''?'Not recorded':String(value)));list.append(item);}panel.append(list);}
+        function details(group,fields){const heading=el('h4',group);heading.className='mapa-gps-detail-heading';panel.append(heading);const list=el('dl');list.className='mapa-gps-detail';for(const [label,value] of fields){const item=el('div');item.append(el('dt',label),el('dd',value===null||value===undefined||value===''?'Not recorded':String(value)));list.append(item);}panel.append(list);}
         function locateDevice(row){
             if(!row.location)return;shown=false;renderPanel();const map=currentAdapter(),p=row.location;
             const rect=document.querySelector?.('.leaflet-container')?.getBoundingClientRect(),dividers=Array.from(document.querySelectorAll?.('.gutter')||[]).map(n=>n.getBoundingClientRect());
@@ -207,19 +302,31 @@
             const rect=document.querySelector?.('.leaflet-container')?.getBoundingClientRect(),dividers=Array.from(document.querySelectorAll?.('.gutter')||[]).map(n=>n.getBoundingClientRect());
             map.fitBounds?.(box,{paddingTopLeft:[30,90],maxZoom:13,paddingBottomRight:mapPadding(rect,dividers,window.innerHeight)});
         }
-        function deviceLabel(row){return fleetName(row)+(row.mapped?'':' · Unmapped GPS device');}
+        function deviceLabel(row){return (row.mapped?row.registration||fleetName(row):fleetName(row))+(row.mapped?'':' · Unmapped GPS device');}
         function renderPanel(){
             const view=displayed();
             renderFleet();
             button&&(button.textContent='All GPS devices'+(data?' · '+data.devices.length+' ('+data.devices.filter(row=>!row.mapped).length+' unmapped)':''));
             if(!shown){panel?.remove();panel=null;return;}
             if(!panel){panel=el('section');panel.className='mapa-gps-panel';panel.setAttribute('aria-label','All GPS devices');document.body.append(panel);}const heading=el('h3','All GPS devices');panel.replaceChildren(heading);
-            const tools=el('div');tools.className='mapa-gps-actions';tools.append(action('Refresh GPS',()=>refresh(true)),action('Show all GPS on map',fit),action('Close',()=>{shown=false;followDeviceId=null;renderPanel();}));panel.append(tools);
+            const tools=el('div');tools.className='mapa-gps-actions';tools.append(action('Refresh GPS',()=>refresh(true)),action('Show all GPS on map',fit),action('Close',()=>{shown=false;followDeviceId=null;clearTrail();journeyController?.abort();journeyVersion++;renderPanel();}));panel.append(tools);
             const selected=view?.devices.find(row=>row.id===selectedDeviceId);
             if(selected){
                 panel.setAttribute('aria-label','Vehicle details');heading.textContent='Vehicle details';
                 tools.prepend(action('Back to all devices',()=>{selectedDeviceId=null;followDeviceId=null;clearTrail();journeyController?.abort();journeyVersion++;journey=null;renderPanel();}));
-                panel.append(el('h4',fleetName(selected)),el('p',selected.mapped?'Linked to a MAPA ambulance':'GPS device awaiting ambulance mapping'));
+                panel.append(el('h4',selected.registration||fleetName(selected)),el('p',selected.mapped?'Linked MAPA ambulance':'GPS device awaiting ambulance mapping'));
+                const status=el('p',selected.appearance.label);status.className='mapa-gps-status';status.setAttribute('data-status',selected.appearance.key);panel.append(status);
+                if(journey?.trip){
+                    const completed=!!journey.trip.ended_at;
+                    details(completed?'Last trip · ended':'Current trip · pickup & drop-off',[
+                        ['Trip',journey.trip.order_id],['Stage',journey.trip.status],
+                        ['Pickup',journey.navigation?.pickup?.label||journey.trip.pickup],
+                        ['Drop-off',journey.navigation?.destination?.label||journey.trip.destination]]);
+                    const stops=action('Show pickup & drop-off on map',drawTripStops);
+                    stops.disabled=!tripPoint(journey.navigation?.pickup)&&!tripPoint(journey.navigation?.destination);panel.append(stops);
+                    if(stops.disabled)panel.append(el('p','Saved pickup/drop-off coordinates are unavailable in this response. No route is guessed.'));
+                    if(!routePoints(journey.navigation?.planned_road_route,journeyNow()).length)panel.append(el('p','Planned road route unavailable. Recorded trip history is shown separately below.'));
+                }else{const empty=el('p',journeyError||(journey?'No linked trip.':selected.mapped?'Loading pickup and drop-off…':'Map this GPS device to an ambulance to view its trip.'));empty.className='mapa-gps-empty-trip';panel.append(empty);}
                 details('Ambulance',[['Registration',selected.registration],['MAPA name',selected.vehicle_name],['Vehicle ID',selected.vehicle_id],['Type',selected.vehicle_type],['Make / model',[selected.vehicle_make,selected.vehicle_model].filter(Boolean).join(' ')],['Year',selected.vehicle_year],['Color',selected.vehicle_color],['Call sign',selected.call_sign],['Seating capacity',selected.seating_capacity],['Operational status',selected.vehicle_status],['MAPA online',selected.vehicle_online===true?'Yes':selected.vehicle_online===false?'No':null],['Assigned driver',selected.driver_name],['Driver ID',selected.driver_id]]);
                 details('Way4Track device',[['Way4Track label',selected.provider_label],['IMEI',selected.external_id],['Provider status',selected.provider_status],['Ignition',selected.ignition],['GPS power',selected.gps_on===true?'On':selected.gps_on===false?'Off':null],['Connection',selected.connected===true?'Connected':selected.connected===false?'Disconnected':null],['Report status',selected.state==='fresh'?'Recent':selected.state==='offline'?'Offline · last known':selected.state==='stale'?'Stale · last known':'No valid position'],['Speed at report',Number.isFinite(selected.speed_kmh)?selected.speed_kmh.toFixed(1)+' km/h':null],['Heading at report',Number.isFinite(selected.heading_degrees)?Math.round(selected.heading_degrees)+'°':null],['External power',Number.isFinite(selected.external_power_v)?selected.external_power_v.toFixed(2)+' V':null],['Internal battery',Number.isFinite(selected.battery_percent)?Math.round(selected.battery_percent)+'%':null],['GSM signal',Number.isFinite(selected.gsm_percent)?Math.round(selected.gsm_percent)+'%':null]]);
                 const fix=selected.location;details('Last reported location',[['Provider address',selected.address],['Coordinates',fix?fix.latitude.toFixed(6)+', '+fix.longitude.toFixed(6):null],['GPS fix time',fix?time(fix.recorded_at):null],['Provider received',fix?time(fix.provider_received_at):null],['Accuracy','Not measured by provider']]);
@@ -236,7 +343,7 @@
             selectedDeviceId=null;panel.setAttribute('aria-label','All GPS devices');
             panel.append(el('p',error||(!data?'Loading device data…':'Latest server data · '+time(data.server_time))));
             if(view)panel.append(el('p','Provider snapshot: '+(view.feed_stale?'stale':'recent')+(Number.isFinite(view.snapshot_age_seconds)?' · '+Math.round(view.snapshot_age_seconds)+' seconds old':'')));
-            panel.append(el('p','Blue: recent report. Amber: stale. Grey: offline report. Purple: device not mapped to an ambulance. Devices without coordinates stay in this list; no position is invented.'));
+            panel.append(el('p','Green: active GPS. Yellow: pending dispatch offer (delivery is not confirmed). Red: offline. Orange: travelling from GPS movement. Grey: stale/unknown GPS. Purple: unmapped. GPS activity does not establish crew duty or dispatch eligibility.'));
             for(const row of view?.devices||[]){const card=el('article');card.append(action(deviceLabel(row),()=>showDevice(row)),el('p',row.mapped?'Mapped ambulance GPS device':'Ambulance mapping pending'));
                 if(row.location){const fix=row.location;card.append(el('p',(row.state==='fresh'?'Recent reported position':row.state==='offline'?'GPS off / disconnected · last reported position':'Stale · last reported position')+' · '+time(fix.recorded_at)),el('p','Provider received · '+time(fix.provider_received_at)),el('p',fix.latitude.toFixed(6)+', '+fix.longitude.toFixed(6)+' · Provider-reported · Accuracy '+(typeof fix.accuracy_m==='number'&&fix.accuracy_m>0?'±'+Math.round(fix.accuracy_m)+' m':'unknown')));card.append(action('Locate device',()=>currentAdapter()?.flyTo?.(fix.latitude,fix.longitude,14)));}
                 else card.append(el('p','No valid GPS position received'));
@@ -244,12 +351,15 @@
             }
             panel.append(el('p','GPS display does not change driver duty, ambulance status or dispatch eligibility.'));
         }
-        function icon(row){const color=!row.mapped?'#7c3aed':row.state==='offline'?'#64748b':row.state==='stale'?'#b45309':'#2563eb';return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"><circle cx="14" cy="14" r="12" fill="'+color+'" stroke="white" stroke-width="2"/><text x="14" y="19" fill="white" text-anchor="middle" font-size="14" font-family="sans-serif">G</text></svg>');}
         async function draw(){
             const ready=currentAdapter(),view=displayed();if(!view||!active()||!ready)return;const own=version;clearPins();const generation=drawGeneration;adapter=ready;const drawAdapter=adapter;drawnStates=states(view);
             for(const row of view.devices){if(!row.location)continue;const p=row.location,key='mapa-provider-gps-'+generation+'-'+row.id;
-                const label='<strong>'+escape(deviceLabel(row))+'</strong><small>'+escape(row.state==='fresh'?'Recent GPS':row.state==='offline'?'Offline · last-known position':'Stale · last-known position')+'</small>';
-                const marker=await drawAdapter.addMarker(key,p.latitude,p.longitude,{iconUrl:icon(row),iconSize:[28,28],title:deviceLabel(row),tooltip:label,tooltipOptions:{html:true,permanent:true,direction:'top',offset:[0,-12],className:'mapa-gps-map-label'},onClick:()=>showDevice(row)});
+                const label='<strong>'+escape(deviceLabel(row))+'</strong><small>'+escape(row.appearance.label)+'</small>';
+                const open=()=>showDevice(row);
+                const marker=await drawAdapter.addMarker(key,p.latitude,p.longitude,{iconUrl:ambulanceIcon(row),iconSize:[48,48],iconAnchor:[24,24],zIndexOffset:2500,alt:deviceLabel(row),title:deviceLabel(row)+' · '+row.appearance.label,tooltip:label,tooltipOptions:{html:true,permanent:true,direction:'top',offset:[0,-25],className:'mapa-gps-map-label'},onClick:open});
+                // Older deployed Leaflet adapters omit the optional onClick hook.
+                // Leaflet deduplicates the same listener if the adapter already bound it.
+                marker?.on?.('click',open);
                 if(own!==version||generation!==drawGeneration||destroyed||!same(scope,readScope())){drawAdapter.removeMarker(key);return;}pins.set(key,{marker,adapter:drawAdapter});
             }
         }
@@ -259,7 +369,7 @@
             try{const headers=native.getHeaders();if(headers.Authorization!=='Bearer '+own.token)throw new Error('GPS map session changed.');
                 const response=await fetch(PATH,{headers:{Authorization:headers.Authorization,Accept:'application/json'},credentials:'omit',cache:'no-store',redirect:'error',signal:ownController.signal});
                 if(!response.ok)throw Object.assign(new Error(response.status===401||response.status===403?'GPS map access requires an authorized MAPA session.':'GPS device refresh failed.'),{status:response.status});
-                const result=snapshot(await response.json(),own.company);if(epoch!==version||!same(own,readScope()))return;data=result;receivedAt=clock();error='';renderPanel();await draw();if(followDeviceId){const followed=displayed()?.devices.find(row=>row.id===followDeviceId);if(followed?.location)centerDevice(followed);}
+                const result=snapshot(await response.json(),own.company);if(epoch!==version||!same(own,readScope()))return;data=result;receivedAt=clock();error='';renderPanel();await draw();if(shown&&selectedDeviceId&&!journeyController){const selected=data.devices.find(row=>row.id===selectedDeviceId);if(selected?.mapped)loadJourney(selected,false);}if(followDeviceId){const followed=displayed()?.devices.find(row=>row.id===followDeviceId);if(followed?.location)centerDevice(followed);}
             }catch(e){if(epoch===version&&same(own,readScope())){if(e.status===401||e.status===403){clearPins();data=null;}error=e.message+(data?' Last successful data · '+time(data.server_time):'');renderPanel();}}
             finally{clearTimeout(timeout);if(epoch===version){busy=false;controller=null;}}
         }
@@ -270,6 +380,7 @@
             if(!controls?.isConnected){controls=el('div');controls.className='mapa-gps-controls';button=action('All GPS devices',()=>{shown=!shown;renderPanel();refresh();});const labels=action(labelsVisible?'Hide map labels':'Show map labels',()=>{labelsVisible=!labelsVisible;document.documentElement?.classList.toggle('mapa-gps-labels-hidden',!labelsVisible);labels.textContent=labelsVisible?'Hide map labels':'Show map labels';});controls.append(button,action('Show all GPS',()=>{shown=true;renderPanel();if(data)fit();else refresh(true).then(fit);}),labels);bar.append(controls);renderPanel();}
             renderFleet();if(data&&(currentAdapter()!==adapter||states(displayed())!==drawnStates)){draw();renderPanel();}refresh();
             syncNativePopup();
+            syncNativeIcons();
         }
         const interval=setInterval(tick,1200);tick();
         return {destroy(){destroyed=true;clearInterval(interval);reset();style.remove();fleetStyle.remove();document.documentElement?.classList.remove('mapa-gps-labels-hidden');}};
