@@ -77,3 +77,4 @@ builds/osx/frankenphp
 /mapa-android/outputs/
 /mapa-android/fcm/.gradle/
 /infra/helm/secrets.env
+/settings-release/

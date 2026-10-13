@@ -1,0 +1,46 @@
+name: Deploy MAPA settings UI
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: mapa-production-static
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Test and package
+        run: |
+          node console/scripts/test-mapa-dispatch-settings-route.cjs
+          python3 deploy/settings/package.py
+          bash -n settings-release/apply.sh
+      - name: Deploy through configured restricted account
+        env:
+          DEPLOY_KEY: ${{ secrets.MAPA_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.MAPA_KNOWN_HOSTS }}
+          DEPLOY_USER: ${{ vars.MAPA_DEPLOY_USER }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY" && test -n "$KNOWN_HOSTS" || { echo 'Deployment secrets are not configured'; exit 1; }
+          [[ "$DEPLOY_USER" =~ ^mapa-deploy$ ]] || { echo 'Dedicated mapa-deploy account required'; exit 1; }
+          umask 077
+          mkdir -p "$RUNNER_TEMP/mapa-ssh"
+          key="$RUNNER_TEMP/mapa-ssh/key"
+          hosts="$RUNNER_TEMP/mapa-ssh/known_hosts"
+          trap 'rm -f "$key" "$hosts"' EXIT
+          printf '%s\n' "$DEPLOY_KEY" > "$key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$hosts"
+          opts=(-i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$hosts" -o ConnectTimeout=15)
+          target="$DEPLOY_USER@148.135.136.242"
+          release="settings-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          ssh "${opts[@]}" "$target" "mkdir -m 700 -p releases/$release"
+          scp "${opts[@]}" settings-release/publish-settings.py settings-release/mapa-dispatch-settings.js settings-release/apply.sh "$target:releases/$release/"
+          ssh "${opts[@]}" "$target" "bash releases/$release/apply.sh"
