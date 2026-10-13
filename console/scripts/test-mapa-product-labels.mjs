@@ -2,12 +2,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { applyMapaProductLabels, renameProductTranslations, renameProductTemplate, renameProductJavaScript } from './apply-mapa-product-labels.mjs';
 
 let checks = 0;
 function check(condition, message) { assert.ok(condition, message); checks++; }
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const yaml = 'fleet-ops:\n  extension-name: Fleet-Ops\n  help: Connected to Fleetbase.\n  namespace: Fleetbase\\FleetOps\\Models\\Order\n  link: https://Fleetbase.io/Fleet-Ops\n# Fleet-Ops upstream comment\nlegal:\n  notice: Fleetbase copyright\n';
 const translated = renameProductTranslations(yaml);
 check(translated.includes('extension-name: MAPA Operations'), 'display label is branded');
@@ -40,22 +38,39 @@ check(brandedJs.includes("route: 'console.fleet-ops', permission: 'fleet-ops lis
 check(renameProductJavaScript(brandedJs) === brandedJs, 'JavaScript patch is idempotent');
 check(renameProductJavaScript("{ title: 'Fleetbase Legal Notices' }") === "{ title: 'Fleetbase Legal Notices' }", 'upstream legal heading remains accurate');
 
-// Exercise the actual production npm directory layout without requiring a network
-// install or modifying checked-in upstream engine sources.
+// Exercise the production npm directory layout using exact representative source
+// anchors. Keep fixtures here so a clean CI checkout needs no Git submodules or
+// network dependency installation to exercise the entire filesystem traversal.
 const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'mapa-branding-'));
 try {
-    const packages = { 'iam-engine': 'iam-engine', 'ledger-engine': 'ledger', 'fleetops-engine': 'fleetops', 'dev-engine': 'dev-engine', 'storefront-engine': 'storefront', 'registry-bridge-engine': 'registry-bridge' };
-    for (const [installed, source] of Object.entries(packages)) {
-        const sourceRoot = path.join(repoRoot, 'packages', source);
-        const target = installed === 'fleetops-engine' ? path.join(temporary, 'package-store', installed) : path.join(temporary, 'node_modules/@fleetbase', installed);
-        fs.mkdirSync(target, { recursive: true });
-        for (const directory of ['addon', 'translations']) {
-            const from = path.join(sourceRoot, directory);
-            if (fs.existsSync(from)) fs.cpSync(from, path.join(target, directory), { recursive: true });
-            else fs.mkdirSync(path.join(target, directory));
-        }
+    const packages = ['iam-engine', 'ledger-engine', 'fleetops-engine', 'dev-engine', 'storefront-engine', 'registry-bridge-engine'];
+    const packageRoot = installed => installed === 'fleetops-engine' ? path.join(temporary, 'package-store', installed) : path.join(temporary, 'node_modules/@fleetbase', installed);
+    const write = (root, relative, content) => {
+        const target = path.join(root, relative);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, content);
+    };
+    for (const installed of packages) {
+        write(packageRoot(installed), 'translations/en-us.yaml', 'fleet-ops:\n  extension-name: Fleet-Ops\n  description: Fleetbase operations.\n');
     }
-    fs.cpSync(path.join(repoRoot, 'console/translations'), path.join(temporary, 'translations'), { recursive: true });
+    const fixtures = {
+        'iam-engine/addon/components/widget/policy-surface.hbs': '<small>Fleetbase</small>',
+        'ledger-engine/addon/components/customer-invoice.hbs': '<span class="font-medium">Fleetbase Ledger</span>',
+        'ledger-engine/addon/components/modals/refund-result.hbs': '<InputGroup @helpText="Send this Fleetbase link to the customer." />',
+        'fleetops-engine/addon/controllers/connectivity/telematics/details/attachments.js': "const alert = { message: 'Fleetbase could not load the full provider device list.' };",
+        'fleetops-engine/addon/utils/fleet-ops-options.js': "const option = { label: 'Integrated Vendor', value: 'integrated_vendor', description: 'Vendor with native API integration into Fleetbase' };",
+        'fleetops-engine/addon/templates/settings/index.hbs': '<h1 class="fleet-ops-control-hub-title">Fleet-Ops Settings</h1>',
+        'fleetops-engine/addon/controllers/settings/index.js': "const option = { label: 'Custom Fields', route: 'settings.custom-fields', description: 'Operational metadata fields for Fleet-Ops records.' };",
+        'fleetops-engine/addon/routes/home.js': 'const loader = this.loader.show({ loadingMessage: `Loading Fleet-Ops...` });',
+        'fleetops-engine/addon/components/issue/details/correspondence.hbs': '<X @subjectType="Fleetbase\\FleetOps\\Models\\Issue" />',
+        'fleetops-engine/addon/templates/operations/scheduler/index.hbs': "{{!-- Plugins are incompatible with Fleetbase's dual AGPL v3 / commercial license. --}}",
+    };
+    for (const [relative, content] of Object.entries(fixtures)) {
+        const slash = relative.indexOf('/');
+        write(packageRoot(relative.slice(0, slash)), relative.slice(slash + 1), content);
+    }
+    write(temporary, 'translations/en-us.yaml', 'app:\n  name: Fleetbase\n');
+    write(temporary, 'app/utils/get-service-name.js', "export default function getServiceName() { return 'Fleet Ops'; }");
     const fleetLink = path.join(temporary, 'node_modules/@fleetbase/fleetops-engine');
     const fleetStore = path.join(temporary, 'package-store/fleetops-engine');
     fs.symlinkSync(fleetStore, fleetLink, process.platform === 'win32' ? 'junction' : 'dir');
@@ -74,3 +89,4 @@ try {
     check(read('addon/templates/settings/index.hbs') === before, 'repeated installed-package pass is stable');
 } finally { fs.rmSync(temporary, { recursive: true, force: true }); }
 console.log(`${checks} MAPA product-label checks passed.`);
+
