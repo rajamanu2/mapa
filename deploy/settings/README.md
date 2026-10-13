@@ -23,4 +23,4 @@ The publisher discovers current asset references, checks live file hashes before
 
 If the connection drops after publication, inspect `receipt.json` and the public site before retrying. Do not delete release backups. To roll back a completed release, the administrator runs `python3 publish-settings.py --rollback` from that exact release directory; it refuses rollback if files have drifted.
 
-Status: workflow prepared and locally tested; live SSH access and first production run are not yet verified. This does not resolve the dispatch scheduler lock or establish API deployment readiness.
+Status: live SSH access, publication and public asset hash verification succeeded in GitHub run 38462141312 on 2026-10-14 IST. This does not resolve the dispatch scheduler lock or establish API deployment readiness. Deployments remain manually triggered.
