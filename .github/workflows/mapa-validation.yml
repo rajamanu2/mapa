@@ -1,0 +1,29 @@
+name: MAPA source validation
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: mapa-validation-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  console-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Run isolated MAPA UI checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          for test in voice dispatch-settings-route ambulance-directory ambulance-directory-dom command-desk-dom new-call-workbench call-tabs gps-device-layer; do
+            node "console/scripts/test-mapa-${test}.cjs"
+          done
+      - name: Deployment status
+        run: echo 'Source validation only. VPS deployment is not configured and no production changes were made.' >> "$GITHUB_STEP_SUMMARY"
