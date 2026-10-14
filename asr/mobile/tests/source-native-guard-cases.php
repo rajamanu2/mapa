@@ -1,6 +1,8 @@
 <?php
 if(!isset($mapaDedicatedQaApp,$company))throw new RuntimeException('Isolated native QA required.');
 $guardPrior=config('mapa_mobile.source_dispatch_coordination_enabled');
+$authorityPrior=config('mapa_mobile.dispatch_authority');
+config(['mapa_mobile.dispatch_authority'=>'asr']);
 $guard=new App\MapaMobile\SourceNativeWriteGuard;
 $next=fn($request)=>response()->json(['allowed'=>true]);
 config(['mapa_mobile.source_dispatch_coordination_enabled'=>true]);
@@ -31,7 +33,16 @@ try{
     config(['mapa_mobile.source_dispatch_coordination_enabled'=>false]);
     $observer->creating($guardOrder);$observer->updating($guardDriver);
     check($guard->handle(Illuminate\Http\Request::create('/api/int/v1/orders','POST'),$next)->getStatusCode()===200,'disabled coordination preserves existing fleet workflow');
+    config(['mapa_mobile.dispatch_authority'=>'mapa']);
+    $guardOrder->company_uuid=$company;
+    denied(fn()=>$observer->creating($guardOrder),409);
+    denied(fn()=>$observer->updating($guardDriver),409);
+    denied(fn()=>$observer->deleting($guardDriver),409);
+    DB::table('mapa_source_journeys')->where('journey_id',$guardJourney)->update(['terminal_at'=>now()]);
+    $observer->creating($guardOrder);$observer->updating($guardDriver);
+    check(true,'MAPA permits native operational changes only after old ownership is reconciled');
 }finally{
     DB::table('mapa_source_journeys')->where('journey_id',$guardJourney)->delete();
     config(['mapa_mobile.source_dispatch_coordination_enabled'=>$guardPrior]);
+    config(['mapa_mobile.dispatch_authority'=>$authorityPrior]);
 }

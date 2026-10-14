@@ -88,7 +88,7 @@ walk(root).find(n=>n.tagName==='BUTTON'&&n.textContent==='Caller & priority').di
 check(slides[0].hidden&&!slides[1].hidden,'arrow navigation reaches the next accessible tab');
 root.querySelector('form').dispatchEvent({type:'submit',preventDefault(){}});
 check(!slides[1].hidden&&find(root,'reported_problem').attributes['aria-invalid']==='true','required-field error reveals the slide containing that field');
-check(!!btn(root,'Create & Pin Emergency'),'reference create action retained');
+check(!!btn(root,'Save call'),'create action clearly describes saving before review and dispatch');
 check(root.querySelectorAll('.mapa-command-create-options').every(node=>!node.open),'ASR and patient extras start collapsed');
 const verified=find(root,'pickup_confirmed_at_creation');check(verified&&!verified.checked,'pickup verification is explicit and unchecked');
 check(find(root,'latitude').value===''&&find(root,'longitude').value==='','reference default coordinates are not copied into live calls');

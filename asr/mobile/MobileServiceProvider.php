@@ -18,7 +18,7 @@ class MobileServiceProvider extends ServiceProvider
         $this->app->make(\Illuminate\Contracts\Http\Kernel::class)->pushMiddleware(SourceNativeWriteGuard::class);
         $this->loadMigrationsFrom(__DIR__.'/migrations');
         if($this->app->runningInConsole())$this->commands([SourceDispatchDrainCommand::class]);
-        if(config('mapa_mobile.source_dispatch_coordination_enabled',false)){
+        if(DispatchAuthority::mapaControls()||config('mapa_mobile.source_dispatch_coordination_enabled',false)){
             foreach([\Fleetbase\FleetOps\Models\Order::class,\Fleetbase\FleetOps\Models\Driver::class,\Fleetbase\FleetOps\Models\Vehicle::class] as $model)$model::observe(SourceNativeAssignmentObserver::class);
         }
         if (!config('mapa_mobile.enabled')) return;

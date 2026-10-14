@@ -25,8 +25,8 @@
 #view-header-tray-items #mapa-intake-summary:hover{background:#1b4853;border-color:#63b6ab}
 
 /* Intake is a workspace view alongside Map, Table and Board. */
-.next-view-section-container.mapa-intake-workspace-open{position:relative}
-.mapa-intake-workspace-frame{position:absolute;inset:40px 0 0;width:100%;height:calc(100% - 40px);border:0;background:#fff;z-index:800}
+.next-view-section-container.mapa-intake-workspace-open{position:relative;min-width:0;min-height:0;overflow:hidden}
+.mapa-intake-workspace-frame{position:absolute;inset:40px 0 0;display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0;min-height:0;height:calc(100% - 40px);border:0;background:#fff;z-index:800}
 :is(.dark,.dark-theme) .mapa-intake-workspace-frame{background:#111827}
 #mapa-new-call-view-button{font:inherit;border-radius:999px;padding:3px 16px;min-height:24px;background:#e5e7eb;color:#111827;border:0;cursor:pointer}
 #mapa-new-call-view-button.active{background:#3388e6;color:white}

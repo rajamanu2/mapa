@@ -1,5 +1,5 @@
 app:
-  name: Fleetbase
+  name: MAPA
 
 common:
   new: Nuovo
@@ -791,8 +791,8 @@ onboard:
       send-by-sms: Invia via SMS
 
 install:
-  not-configured-title: Fleetbase non è installato o configurato
-  not-configured-message: Completa la configurazione dalla CLI di Fleetbase o dal container dell'applicazione, poi ricarica questa pagina quando database, migrazioni e dati iniziali saranno pronti.
+  not-configured-title: MAPA non è installato o configurato
+  not-configured-message: Completa la configurazione dalla CLI di MAPA o dal container dell'applicazione, poi ricarica questa pagina quando database, migrazioni e dati iniziali saranno pronti.
   running-locally-docs: Vedi la documentazione per l'esecuzione in locale
   cloud-docs: Vedi la documentazione per il deployment in cloud
   refreshing: Installazione completata, ricaricamento in corso...

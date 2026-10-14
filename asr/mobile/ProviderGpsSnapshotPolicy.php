@@ -62,6 +62,7 @@ final class ProviderGpsSnapshotPolicy
                 'seating_capacity'=>$mapped&&is_numeric($binding['seating_capacity']??null)?(int)$binding['seating_capacity']:null,
                 'driver_id'=>$mapped?self::label($binding['driver_id']??null,120):null,
                 'driver_name'=>$mapped?self::label($binding['driver_name']??null,150):null,
+                'offer_expires_at'=>$mapped&&self::stamp($binding['offer_expires_at']??null)&&$binding['offer_expires_at']>$now?$binding['offer_expires_at']:null,
                 'stale'=>!$fresh,'age_seconds'=>$fixAge,'location_state'=>$state];
             $counts['total']++;$counts[$coordinates?'plotted':'without_coordinates']++;
             if($state==='fresh')$counts['fresh']++;elseif($coordinates)$counts['last_known']++;

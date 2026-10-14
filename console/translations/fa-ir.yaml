@@ -581,7 +581,7 @@ auth:
     success-message: Your email address has been updated.
     invalid-verification-code: This email change link is invalid or expired.
     title: Confirm email change
-    message-text: Confirm this change to update the login email for your Fleetbase account.
+    message-text: Confirm this change to update the login email for your MAPA account.
     form:
       code:
         label: Confirmation code
@@ -736,8 +736,8 @@ onboard:
       resend-email: ارسال مجدد ایمیل
       send-by-sms: ارسال از طریق پیامک
 install:
-  not-configured-title: Fleetbase is not installed or configured
-  not-configured-message: Complete setup from the Fleetbase CLI or application container, then reload this page once the database, migrations, and seed data are ready.
+  not-configured-title: MAPA is not installed or configured
+  not-configured-message: Complete setup from the application CLI or application container, then reload this page once the database, migrations, and seed data are ready.
   running-locally-docs: See running locally docs
   cloud-docs: See cloud deployment docs
   refreshing: Installation complete, refreshing...

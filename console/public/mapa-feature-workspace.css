@@ -1,0 +1,49 @@
+.mapa-feature-menu{padding:4px 8px 8px;flex:0 0 auto;color:inherit}
+.mapa-feature-group{margin:0 0 8px}
+.mapa-feature-group h2{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#6b7280;margin:6px 8px}
+.mapa-feature-link{display:flex;align-items:center;min-height:28px;padding:4px 10px;border-radius:5px;font-size:12px;font-weight:500;text-decoration:none;color:inherit;line-height:1.3}
+.mapa-feature-link:before{content:'';width:5px;height:5px;border:1px solid currentColor;opacity:.65;border-radius:1px;margin-right:10px;flex:none}
+.mapa-feature-link:hover{background:#e5e7eb;color:#111827}
+.mapa-feature-link[aria-current=page]{background:#2563eb;color:white}
+.mapa-feature-link:focus-visible,.mapa-feature-more:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+.mapa-feature-more{font-size:11px;color:inherit;width:100%;text-align:left;border-top:1px solid #9ca3af44;padding:9px 8px;margin-top:3px}
+.mapa-feature-ready:not(.mapa-feature-more-open)>.next-sidebar-navigator-viewport{display:none}
+.mapa-feature-ready:not(.mapa-feature-more-open) .mapa-feature-secondary,.mapa-feature-ready:not(.mapa-feature-more-open) .mapa-feature-secondary-group{display:none}
+.dark .mapa-feature-group h2{color:#94a3b8}
+.dark .mapa-feature-link:hover{background:#273449;color:#f8fafc}
+.dark .mapa-feature-link[aria-current=page]{background:#2563eb;color:white}
+.mapa-feature-ready{overflow-y:auto!important;min-height:0}
+.mapa-home-dashboard{margin:0 0 24px}
+.mapa-map-credit{position:absolute;left:64px;top:8px;z-index:450;background:#ffffffee;color:#1e3a5f!important;padding:3px 6px;border-radius:3px;font-size:10px;text-decoration:underline}
+.fleet-ops-key-metrics .grid{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))!important}
+@media(max-width:767px){.mapa-feature-link{min-height:40px}.mapa-feature-menu{padding-bottom:16px}}
+
+/* One consistent native toolbar; counters remain visible without oversized tabs. */
+#map-topbar-container{gap:8px;align-items:center;min-height:40px}
+#map-topbar-container .next-map-container-view-switch{display:flex;align-items:center;gap:4px;flex:0 0 auto}
+#map-topbar-container .next-map-container-view-switch>button,#map-topbar-container>.mapa-transfer-button,#map-topbar-container .mapa-gps-controls>button{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;min-height:30px;height:30px;width:auto;flex:0 0 auto;white-space:nowrap;padding:4px 10px;margin:0;border:1px solid #d1d5db;border-radius:5px;background:#f9fafb;color:#374151;font:500 12px/1.3 system-ui;box-shadow:none}
+#map-topbar-container .mapa-gps-controls{display:flex;align-items:center;gap:4px;min-width:0}
+#map-topbar-container #mapa-new-call-view-button.has-pending-notifications{background:#eaf2ff!important;color:#1d4ed8!important;border-color:#93b8f3!important;box-shadow:none}
+#map-topbar-container>.mapa-transfer-button.has-pending-notifications{background:#fff7e6!important;color:#92400e!important;border-color:#e7c88a!important}
+#map-topbar-container .next-map-container-view-switch>button.active,#map-topbar-container #mapa-new-call-view-button.active{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important}
+:is(.dark,.dark-theme) #map-topbar-container .next-map-container-view-switch>button,:is(.dark,.dark-theme) #map-topbar-container .mapa-gps-controls>button{background:#1f2937;color:#d1d5db;border-color:#374151}
+:is(.dark,.dark-theme) #map-topbar-container #mapa-new-call-view-button.has-pending-notifications{background:#1d355b!important;color:#bfdbfe!important;border-color:#375c90!important}
+:is(.dark,.dark-theme) #map-topbar-container>.mapa-transfer-button.has-pending-notifications{background:#352b1c!important;color:#f7cf86!important;border-color:#705837!important}
+:is(.dark,.dark-theme) #map-topbar-container #mapa-new-call-view-button.active{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important}
+#map-topbar-container button:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+.mapa-intake-workspace-open #map-topbar-container :is(#ops-map-view-button,#ops-table-view-button,#ops-kanban-view-button){background:#f9fafb!important;color:#374151!important;border-color:#d1d5db!important}
+:is(.dark,.dark-theme) .mapa-intake-workspace-open #map-topbar-container :is(#ops-map-view-button,#ops-table-view-button,#ops-kanban-view-button){background:#1f2937!important;color:#d1d5db!important;border-color:#374151!important}
+@media(max-width:1099px){#map-topbar-container{overflow-x:auto;white-space:nowrap}#map-topbar-container .mapa-gps-controls{flex:0 0 auto}}
+/* Keep the native shell inside its browser viewport; navigation may scroll independently. */
+.fleetbase-console > .ember-view, .fleetbase-console .fleetbase-next-container { height:100dvh; max-height:100dvh; min-height:0; overflow:hidden; }
+.next-view-header { box-sizing:border-box; width:100%; max-width:100%; min-width:0; }
+.next-view-header-left { flex:1 1 0; min-width:0; overflow:hidden; }
+.next-view-header-left .snm-container { min-width:0; max-width:100%; overflow-x:auto; scrollbar-width:thin; scrollbar-color:#64748b transparent; }
+.next-view-header-right { flex:0 1 auto; min-width:0; max-width:50%; }
+#view-header-tray-items { min-width:0; overflow-x:auto; scrollbar-width:thin; scrollbar-color:#64748b transparent; }
+.next-view-container, .next-view-section, .next-view-section-container { min-width:0; min-height:0; max-width:100%; }
+#map-topbar-container { max-width:100%; overflow-x:auto; overflow-y:hidden; flex-wrap:nowrap; scrollbar-width:thin; scrollbar-color:#64748b transparent; }
+@media(max-width:767px) {
+    .next-view-header-right { max-width:55%; }
+    .next-view-header-left .snm-container { margin-right:4px; }
+}

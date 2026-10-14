@@ -115,6 +115,9 @@ class AmbulanceDirectory
             $row['crew_gps_recorded_at']=$hasFix?(int)$fixAt:null;
             $row['crew_link_status']=count($links)>1?'ambiguous':($displayDriver?'linked':'unlinked');
             $row['crew_mobile_bound']=$displayDriver&&isset($baseByDriver[$displayDriver->uuid]);
+            $row['source_imported']=$sourceOwned;
+            $row['dispatch_authority']=\App\MapaMobile\DispatchAuthority::mapaControls()?'mapa':($sourceOwned?'asr':'mapa');
+            $sourceOwned=$sourceOwned&&!\App\MapaMobile\DispatchAuthority::mapaControls();
             $row['source_owned']=$sourceOwned;
             if(!$ready)$state=['candidate'=>null,'code'=>in_array($call->state,['dispatched','dismissed'],true)?'call_resolved':'review_required','message'=>'Review and confirm the call before checking dispatch eligibility.'];
             elseif($sourceOwned)$state=['candidate'=>null,'code'=>'source_owned','message'=>'ASR manages this ambulance and its dispatch. MAPA shows its source GPS and trip tracking only.'];

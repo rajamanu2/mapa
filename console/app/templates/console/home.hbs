@@ -9,6 +9,28 @@
       <div><h2>Coordinate every response.</h2><p>Open the district map to track connected ambulances, assign drivers, and manage transport calls.</p></div>
       <a class="mapa-primary" href="/fleet-ops">Open live operations →</a>
     </div>
+    <section class="mapa-dashboard" aria-label="MAPA dashboard">
+      <Dashboard
+        @slot="console.home"
+        @defaultDashboardId="dashboard"
+        @defaultDashboardName="MAPA Dashboard"
+        @extension="core"
+        @leftHeaderWrapperClass="console-dashboard-title"
+        @rightHeaderWrapperClass="console-dashboard-actions"
+        @createWrapperClass="console-dashboard-create-wrapper"
+        class="console-dashboard-page"
+      />
+    </section>
+    {{#if (can "fleet-ops list order")}}
+      <section class="mapa-home-dashboard" aria-label="MAPA fleet metrics">
+        <LazyEngineComponent @component="#extension-component:@fleetbase/fleetops-engine:widget/fleet-ops-key-metrics" />
+      </section>
+    {{/if}}
+    {{#if (can "storefront see extension")}}
+      <section class="mapa-home-dashboard" aria-label="Storefront metrics">
+        <LazyEngineComponent @component="#extension-component:@fleetbase/storefront-engine:widget/storefront-key-metrics" />
+      </section>
+    {{/if}}
     <nav class="mapa-grid" aria-label="MAPA operations">
       <a href="/fleet-ops"><span>01 / DISPATCH</span><h2>Ambulance calls</h2><p>Create, assign, and follow transport calls through to hospital handover.</p></a>
       <a href="/fleet-ops/manage/vehicles"><span>02 / READINESS</span><h2>Ambulances</h2><p>Register your ambulances, assign drivers, and connect location tracking.</p></a>
@@ -16,6 +38,9 @@
       <a href="/fleet-ops/manage/places"><span>04 / DESTINATIONS</span><h2>Hospitals &amp; bases</h2><p>Maintain verified hospital destinations and ambulance stations.</p></a>
       <a href="/fleet-ops/maintenance"><span>05 / SERVICE</span><h2>Maintenance</h2><p>Track inspections, equipment, service schedules, and repair jobs.</p></a>
       <a href="/fleet-ops/analytics"><span>06 / REVIEW</span><h2>Operations reports</h2><p>Review recorded activity and fleet performance.</p></a>
+      <a href="/fleet-ops/service-rates"><span>07 / PRICING</span><h2>Service rates</h2><p>Configure service rates and review transport quotes.</p></a>
+      <a href="/fleet-ops/scheduler"><span>08 / SCHEDULE</span><h2>Scheduler</h2><p>Plan upcoming calls and crew assignments.</p></a>
+      <a href="/fleet-ops/order-config"><span>09 / WORKFLOW</span><h2>Call configuration</h2><p>Review activity flows, custom fields, and entities.</p></a>
     </nav>
     <section class="mapa-coverage"><h2>ASR Health operations</h2><p>Manage verified ambulances, crew, hospitals and calls in your ASR Health workspace. Records marked DEMO remain fictional training records.</p></section>
     <section class="mapa-coverage"><h2>Whole-district coverage</h2><p>Paderu · Araku Valley · Ananthagiri · Dumbriguda · Hukumpeta · Pedabayalu · Munchingiputtu · G. Madugula · Chintapalli · G. K. Veedhi · Koyyuru</p><p>The map opens on the district overview. Live positions appear after real ambulances and tracking devices are connected.</p></section>

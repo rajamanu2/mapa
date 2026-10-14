@@ -1,5 +1,7 @@
 <?php
 return [
+    // ASR remains the compatibility default until the explicit fleet cutover.
+    'dispatch_authority' => env('MAPA_DISPATCH_AUTHORITY', 'asr'),
     // Registration alone does not expose routes or enroll users.
     'enabled' => env('MAPA_MOBILE_ENABLED', false),
     'source_sync_enabled' => env('MAPA_SOURCE_SYNC_ENABLED', false),

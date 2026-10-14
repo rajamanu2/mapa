@@ -1,6 +1,6 @@
 <?php
 /** Isolated SQLite only: no app bootstrap, network, original site or operational DB. */
-require $argv[1];require __DIR__.'/../CommandDeskPolicy.php';require __DIR__.'/../CommandDeskService.php';
+require $argv[1];require __DIR__.'/../../mobile/DispatchAuthority.php';require __DIR__.'/../CommandDeskPolicy.php';require __DIR__.'/../CommandDeskService.php';
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use App\MapaVoice\CommandDeskPolicy as P;
@@ -70,6 +70,14 @@ $service=new CommandDeskService;$result=$service->read($ctx,[],$now);
 check($service->read(['company'=>$company,'binding'=>(object)['role'=>'operator']],[],$now)['contract']===CommandDeskService::CONTRACT,'operator can read company operations');
 denied(fn()=>$service->read(['company'=>$company,'binding'=>(object)['role'=>'crew']],[],$now),403);
 check($result['fleet'][1]['driver_name']==='DEMO Driver'&&$result['fleet'][1]['gps_recorded_at']===null,'fleet links existing native driver and does not treat static coordinate as GPS');
+DB::table('drivers')->where('uuid','DEMO-driver')->update(['meta'=>json_encode(['asr_import'=>['source_id'=>'DEMO-source']])]);
+check($service->read($ctx,[],$now)['fleet'][1]['source_owned']===true,'imported driver provenance establishes legacy source ownership');
+config(['mapa_mobile.dispatch_authority'=>'mapa']);
+$cutover=$service->read($ctx,[],$now);$cutoverFleet=$cutover['fleet'][1];
+check($cutover['dispatch_authority']==='mapa'&&$cutoverFleet['dispatch_authority']==='mapa'&&$cutoverFleet['source_imported']===true&&$cutoverFleet['source_owned']===false,'command desk separates retained source provenance from MAPA dispatch authority');
+check($cutoverFleet['dispatchable']===null&&$cutoverFleet['gps_recorded_at']===null,'authority cutover does not invent GPS or dispatch readiness');
+config(['mapa_mobile.dispatch_authority'=>'asr']);
+DB::table('drivers')->where('uuid','DEMO-driver')->update(['meta'=>'{}']);
 Schema::table('vehicles',function($t){$t->double('latitude')->nullable();$t->double('longitude')->nullable();});
 Schema::create('mapa_vehicle_position_states',function($t){$t->string('company_uuid');$t->string('vehicle_uuid');$t->bigInteger('recorded_at');$t->string('source');});
 DB::table('vehicles')->where('uuid','DEMO-v2')->update(['latitude'=>18.0,'longitude'=>82.0]);

@@ -31,7 +31,7 @@ if($result!==0){echo Illuminate\Support\Facades\Artisan::output();throw new Runt
 // Minimal intake projection schema must exist before native.php opens its transaction.
 // Creating/dropping it inside a case would implicitly commit MySQL savepoints.
 Illuminate\Support\Facades\Schema::create('mapa_voice_calls',function($table){
-    $table->uuid('id')->primary();$table->uuid('company_uuid');$table->integer('revision');$table->string('state');$table->boolean('demo');
+    $table->uuid('id')->primary();$table->uuid('company_uuid');$table->string('provider',20)->default('manual');$table->integer('revision');$table->string('state');$table->boolean('demo');
     $table->uuid('order_uuid')->nullable();$table->json('draft')->nullable();$table->json('review')->nullable();$table->timestamps();
 });
 echo 'Initialized disposable native schema from cached source; zero production connections.',PHP_EOL;

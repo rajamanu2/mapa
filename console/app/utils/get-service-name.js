@@ -1,6 +1,6 @@
 export default function getServiceName(serviceName) {
     if (serviceName.toLowerCase().startsWith('fleet')) {
-        return 'Fleet Ops';
+        return 'MAPA Operations';
     }
 
     if (serviceName.toLowerCase().startsWith('iam') || serviceName.toLowerCase().startsWith('identity')) {

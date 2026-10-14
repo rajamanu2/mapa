@@ -32,6 +32,8 @@ Illuminate\Support\Facades\Redis::swap(new class {
     public function get($key){if($key!=='countryData:IN')throw new RuntimeException('Unexpected QA Redis key');return json_encode(['iso2'=>'IN','name'=>['common'=>'India']]);}
 });
 class NativeAutomaticQa extends App\MapaVoice\AutomaticDispatch {
+    // Deterministic source evidence; source-trip-eligibility.php covers stale/open source rows separately.
+    protected function sourceTripBlock(string $company,object $driver,object $vehicle): ?array {return null;}
     // Road adapter is separately tested; this suite verifies real native DB/auth/order atomicity.
     // Historical multi-call cases exercise the engine independently of the
     // single-call production pilot. The pilot intake case below uses the real
@@ -126,7 +128,7 @@ try{(new NativeAutomaticFailureQa)->respondOffer(qaRequest($crew,$accept()),$fai
 foreach($counts as $table=>$count)qaCheck(DB::table($table)->count()===$count,'Failure rolls back '.$table);
 qaCheck(DB::table('mapa_dispatch_offers')->where('id',$failedOffer->id)->value('state')==='offered'&&DB::table('mapa_voice_calls')->where('id',$failed)->value('order_uuid')===null,'Failed acceptance keeps original offer and unassigned call');
 $engine->control(qaRequest($tokens['admin'],qaAction()),$failed,'stop');
-qaFresh();$declined=qaCall($company,$destination);$engine->control(qaRequest($tokens['admin'],qaAction()),$declined,'start');$declineOffer=qaOffer($declined);$crew=qaCrewToken($declineOffer);$decline=['action_id'=>(string)Illuminate\Support\Str::uuid(),'expected_revision'=>1,'response'=>'decline'];
+qaFresh();$declined=qaCall($company,$destination);$engine->control(qaRequest($tokens['admin'],qaAction()),$declined,'start');$declineOffer=qaOffer($declined);$crew=qaCrewToken($declineOffer);$decline=['action_id'=>(string)Illuminate\Support\Str::uuid(),'expected_revision'=>1,'response'=>'decline','decline_reason'=>'unavailable'];
 $engine->respondOffer(qaRequest($crew,$decline),$declineOffer->id);$replacement=qaOffer($declined);
 qaCheck($replacement&&$replacement->driver_uuid!==$declineOffer->driver_uuid,'Native decline offers next eligible crew');
 qaCheck(($engine->respondOffer(qaRequest($crew,$decline),$declineOffer->id)['replayed']??false)===true&&DB::table('mapa_dispatch_offers')->where('call_id',$declined)->count()===2,'Native decline retry does not duplicate replacement offers');
@@ -134,6 +136,20 @@ $engine->control(qaRequest($tokens['admin'],qaAction()),$declined,'stop');
 $metas=DB::table('drivers')->pluck('meta','uuid')->all();foreach($metas as $driver=>$meta)DB::table('drivers')->where('uuid',$driver)->update(['meta'=>json_encode([...json_decode($meta,true),'asr_import'=>['source_id'=>'DEMO']])]);
 qaFresh();$shared=qaCall($company,$destination);$engine->control(qaRequest($tokens['admin'],qaAction()),$shared,'start');
 qaCheck(DB::table('mapa_dispatch_offers')->where('call_id',$shared)->count()===0,'Real native ASR-shared drivers never receive automatic offers');
+config(['mapa_mobile.dispatch_authority'=>'mapa']);
+DB::table('drivers')->update(['online'=>0]);
+$offDutyCutover=qaCall($company,$destination);$engine->control(qaRequest($tokens['admin'],qaAction()),$offDutyCutover,'start');
+qaCheck(qaOffer($offDutyCutover)===null,'MAPA ownership alone never makes an imported off-duty crew available');
+DB::table('drivers')->update(['online'=>1]);
+DB::table('mapa_mobile_driver_states')->update(['recorded_at'=>1]);
+$staleCutover=qaCall($company,$destination);$engine->control(qaRequest($tokens['admin'],qaAction()),$staleCutover,'start');
+qaCheck(qaOffer($staleCutover)===null,'MAPA ownership keeps stale phone GPS ineligible');
+qaFresh();$mapaCutover=qaCall($company,$destination);$engine->control(qaRequest($tokens['admin'],qaAction()),$mapaCutover,'start');
+qaCheck(qaOffer($mapaCutover)!==null,'Imported linked native crew becomes available after duty starts and phone GPS is fresh');
+qaCheck(DB::table('drivers')->where('meta','like','%asr_import%')->count()===count($metas),'MAPA native offers retain imported driver provenance');
+$engine->control(qaRequest($tokens['admin'],qaAction()),$mapaCutover,'stop');
+qaDeny(fn()=>$engine->control(qaRequest($tokens['admin'],qaAction()),qaCall($company,$destination,'asrhealth'),'start'),409,'MAPA cutover never dispatches an ASR historical call mirror');
+config(['mapa_mobile.dispatch_authority'=>'asr']);
 foreach($metas as $driver=>$meta)DB::table('drivers')->where('uuid',$driver)->update(['meta'=>$meta]);
 qaFresh();$resumeAction=qaAction();$engine->control(qaRequest($tokens['admin'],$resumeAction),$shared,'start');
 qaCheck(qaOffer($shared)!==null,'Explicit native retry resumes resource-exhausted run after new eligibility');
@@ -178,6 +194,11 @@ qaCheck((json_decode(DB::table('mapa_voice_calls')->where('id',$pilot['id'])->va
 $pilotPlace=qaRow('places',['company_uuid'=>$company,'name'=>'DEMO QA live receiving hospital',
     'location'=>$point,'latitude'=>18.083,'longitude'=>82.669,'meta'=>json_encode(['mapa_demo'=>false,'isolated_test'=>true])]);
 $pilotDestination=DB::table('places')->where('uuid',$pilotPlace)->value('public_id');
+// The settings migration makes the database authoritative for commissioning.
+// Model a healthy enabled worker in this disposable tenant before checking the
+// separate exact-call pilot scope; an empty settings table must stay disabled.
+DB::table('mapa_dispatch_settings')->updateOrInsert(['company_uuid'=>$company],['enabled'=>true,
+    'mode'=>'all_live','revision'=>1,'last_tick_at'=>now(),'created_at'=>now(),'updated_at'=>now()]);
 $pilotReview=['action_id'=>(string)Illuminate\Support\Str::uuid(),'expected_revision'=>$pilot['revision'],
     'confirmed'=>true,'supervised_pilot'=>true,'pilot_pickup_confirmed_by_operator'=>true,
     'coordinates_confirmed'=>false,'caller_name'=>'MAPA PILOT — NO PATIENT','callback_number'=>'',

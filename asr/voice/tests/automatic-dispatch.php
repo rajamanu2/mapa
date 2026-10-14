@@ -1,6 +1,6 @@
 <?php
 /** Isolated SQLite engine tests. Native authentication/order creation have separate integration suites. */
-namespace {require $argv[1];}
+namespace {require $argv[1];require __DIR__.'/../../mobile/DispatchAuthority.php';}
 namespace Fleetbase\Models {
     class User extends \Illuminate\Database\Eloquent\Model {protected $table='users';public $timestamps=false;protected $guarded=[];}
 }
@@ -41,6 +41,8 @@ foreach(['companies','users','company_users','drivers','vehicles','mapa_mobile_b
     $t->integer('revision')->default(1);$t->boolean('enabled')->default(1);$t->boolean('demo')->default(0);$t->float('latitude')->default(18);$t->float('longitude')->default(82);$t->timestamp('deleted_at')->nullable();$t->timestamps();
 });
 class Engine extends AutomaticDispatch {
+    // Source snapshot safety is exercised by source-trip-eligibility.php; engine fixtures have no source receiver.
+    protected function sourceTripBlock(string $company,object $driver,object $vehicle): ?array {return null;}
     // Exercise the historical engine cases independently of the single-call pilot.
     // The real pilot boundary has separate, unoverridden tests below.
     public static function available(): bool {return config('mapa_voice.enabled')&&config('mapa_voice.automatic_dispatch_enabled')
@@ -180,6 +182,21 @@ check(DB::table('orders')->count()===$ordersBeforeStale,'Rejected stale acceptan
 $engine->control(req($admin,startBody()),$staleResponseCall,'stop');
 $changed=callFixture($company);$engine->control(req($admin,startBody()),$changed,'start');DB::table('mapa_voice_calls')->where('id',$changed)->update(['revision'=>2]);$engine->tick();check(DB::table('mapa_dispatch_runs')->where('call_id',$changed)->value('state')==='stopped','Changed review invalidates offers');
 DB::table('drivers')->update(['meta'=>json_encode(['asr_import'=>['source_id'=>1]])]);$shared=callFixture($company);$engine->control(req($admin,startBody()),$shared,'start');check(DB::table('mapa_dispatch_offers')->where('call_id',$shared)->count()===0,'Shared ASR drivers excluded');
+config(['mapa_mobile.dispatch_authority'=>'mapa']);
+Schema::create('mapa_source_journeys',function($t){$t->text('company_uuid');$t->timestamp('terminal_at')->nullable();});
+Schema::create('mapa_source_dispatch_outbox',function($t){$t->text('company_uuid');$t->text('state');});
+$pendingOwnership=callFixture($company);DB::table('mapa_source_dispatch_outbox')->insert(['company_uuid'=>$company,'state'=>'pending']);
+denied(fn()=>$engine->control(req($admin,startBody()),$pendingOwnership,'start'),409,'Pending source outbox blocks new MAPA offers');
+check(!DB::table('mapa_dispatch_offers')->where('call_id',$pendingOwnership)->exists(),'Unresolved cutover creates no offer');
+DB::table('mapa_source_dispatch_outbox')->delete();
+$controlled=callFixture($company);$engine->control(req($admin,startBody()),$controlled,'start');
+check(DB::table('mapa_dispatch_offers')->where('call_id',$controlled)->where('state','offered')->exists(),'MAPA authority allows qualified imported crews to receive native offers');
+check(DB::table('drivers')->where('meta','like','%asr_import%')->exists(),'Dispatch authority does not erase source provenance');
+$engine->control(req($admin,startBody()),$controlled,'stop');
+$sourceHistory=callFixture($company);DB::table('mapa_voice_calls')->where('id',$sourceHistory)->update(['provider'=>'asrhealth']);
+denied(fn()=>$engine->control(req($admin,startBody()),$sourceHistory,'start'),409,'ASR historical call mirrors remain read-only after MAPA cutover');
+check(!DB::table('mapa_dispatch_offers')->where('call_id',$sourceHistory)->exists(),'Cutover never automatically dispatches source call history');
+config(['mapa_mobile.dispatch_authority'=>'asr']);
 DB::table('drivers')->update(['meta'=>'{}']);Engine::$routingFails=true;$noRoute=callFixture($company);$engine->control(req($admin,startBody()),$noRoute,'start');check(DB::table('mapa_dispatch_runs')->where('call_id',$noRoute)->value('reason')==='road_routing_unavailable','No route escalates without guessed ETA');
 check(App\MapaVoice\AutomaticDispatchPolicy::accepts('offered',100,100)
     &&App\MapaVoice\AutomaticDispatchPolicy::accepts('overdue',100,189)

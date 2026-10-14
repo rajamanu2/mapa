@@ -40,6 +40,13 @@ check($sourceRow['hospital_name']==='DEMO Approved Araku Hospital'&&$sourceRow['
 $sourceMatching=$s->show($directoryRequest('Araku AP31 X4321'),$liveManual['id']);
 check($sourceMatching['matching_total']===1&&$sourceMatching['candidates']===[]&&$sourceMatching['unavailable'][0]['code']==='source_owned','area and registration search cannot bypass source ownership');
 denied(fn()=>$s->mutate(voiceRequest(['action_id'=>(string)Str::uuid(),'expected_revision'=>$sourceDirectory['call']['revision'],'confirmed'=>true,'driver_id'=>'driver_mapa_voice_demo_01'],$tokens['admin']),'dispatch',$liveManual['id']),409);
+config(['mapa_mobile.dispatch_authority'=>'mapa']);
+$mapaDirectory=$s->show(voiceRequest([],$tokens['admin']),$liveManual['id']);
+check(count($mapaDirectory['candidates'])===1&&$mapaDirectory['candidates'][0]['vehicle_id']===$directoryVehicleId,'MAPA authority admits an imported ambulance only with eligible linked crew');
+check($mapaDirectory['candidates'][0]['source_imported']===true&&$mapaDirectory['candidates'][0]['source_owned']===false&&$mapaDirectory['candidates'][0]['dispatch_authority']==='mapa','import provenance remains visible independently of MAPA dispatch ownership');
+$mapaUnlinked=array_values(array_filter($mapaDirectory['unavailable'],fn($v)=>$v['vehicle_id']===$inventoryIds[220]))[0];
+check($mapaUnlinked['code']==='crew_unlinked'&&!$mapaUnlinked['source_owned'],'unlinked imported inventory still requires a real approved crew after cutover');
+config(['mapa_mobile.dispatch_authority'=>'asr']);
 // The remaining eligibility tests need a native-managed fixture. Keep imported
 // inventory rows intact; do not relax the production source-ownership guard.
 $nativeDirectoryMeta=json_encode(['mapa_demo'=>false,'isolated_test'=>true,'mapa_ambulance_level'=>'bls','hospital_name'=>'DEMO Native Araku Base','mandal'=>'Araku Valley','secretariat'=>'Madala']);

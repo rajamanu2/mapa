@@ -1,0 +1,48 @@
+name: MAPA isolated backend validation
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'asr/mobile/**'
+      - 'asr/voice/**'
+      - 'api/composer.*'
+      - '.github/workflows/mapa-backend-validation.yml'
+permissions:
+  contents: read
+jobs:
+  isolated-backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.2'
+          extensions: pdo_sqlite, mbstring, dom, xml, zip, gd, bcmath
+          tools: composer:2
+          coverage: none
+      - name: Install locked dependencies without application bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v php8.2
+          php8.2 --version
+          php8.2 "$(command -v composer)" install --working-dir=api --no-interaction --prefer-dist --no-scripts --no-plugins --no-progress
+      - name: Run isolated SQLite and policy suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          autoload="$GITHUB_WORKSPACE/api/vendor/autoload.php"
+          php8.2 asr/mobile/tests/dispatch-authority.php
+          php8.2 asr/voice/tests/source-trip-eligibility.php
+          php8.2 asr/voice/tests/source-trip-identities.php "$autoload"
+          php8.2 asr/voice/tests/source-dispatch-boundary.php "$autoload"
+          php8.2 asr/voice/tests/command-desk.php "$autoload"
+          php8.2 asr/mobile/tests/provider-gps-map.php "$autoload"
+          php8.2 asr/voice/tests/automatic-dispatch.php "$autoload"
+          php8.2 asr/voice/tests/supervised-pilot-policy.php "$autoload"
+          php8.2 asr/voice/tests/automatic-dispatch-scope.php
+      - name: Validation boundary
+        run: echo 'Isolated in-memory SQLite and policy validation only. No production credentials, database, notifications or deployment. Native MySQL concurrency, phone delivery and live acceptance require separate verification.' >> "$GITHUB_STEP_SUMMARY"

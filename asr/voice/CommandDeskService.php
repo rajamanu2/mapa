@@ -71,7 +71,7 @@ final class CommandDeskService
             'driver_statistics'=>$rows,'trip_monitoring'=>$monitor,'dispatch_exceptions'=>$dispatchExceptions,'history'=>$history,'fleet'=>$fleet,
             'metrics'=>['acceptance_denominator'=>'accepted + declined + expired; excludes pending/overdue/cancelled','response_denominator'=>'valid timed accepted/declined responses only; excludes expiry worker times','offers_available'=>$offerAvailable,'unattributed_completions'=>$unattributed],
             'page'=>$page,'page_size'=>50,'has_more'=>$driverMore,'truncated'=>['drivers'=>$driverMore,'offers'=>$offerTruncated,'completed_trips'=>$completed->count()>self::SCAN_LIMIT,'history'=>array_sum($completionCounts)>100,'active_trips'=>$active->count()>100,'fleet'=>$fleetRows->count()>200,'dispatch_exceptions'=>$dispatchExceptionsTruncated],
-            'read_only'=>true,'source_asr_dispatch_control'=>false,'source_asr_snapshot_read'=>false,'native_source_linked_orders_included'=>true];
+            'read_only'=>true,'dispatch_authority'=>\App\MapaMobile\DispatchAuthority::mapaControls()?'mapa':'asr','source_asr_dispatch_control'=>false,'source_asr_snapshot_read'=>false,'native_source_linked_orders_included'=>true];
     }
     private function native(string $table,string $company){return DB::table($table)->where('company_uuid',$company)->whereNull('deleted_at');}
     private function demo(object $row): bool {$meta=CommandDeskPolicy::meta($row->meta??null);return ($meta['mapa_demo']??false)===true||($meta['simulated']??false)===true;}
@@ -83,6 +83,8 @@ final class CommandDeskService
             ->where('d.company_uuid',$company)->whereNull('d.deleted_at')->whereIn('d.vehicle_uuid',$ids);
         $columns=['d.*','u.name as crew_name'];if(Schema::hasColumn('users','phone'))$columns[]='u.phone as crew_phone';
         $drivers=$driverQuery->limit(1001)->get($columns)->filter(fn($d)=>!$this->demo($d))->groupBy('vehicle_uuid');
+        $sourceIds=Schema::hasTable('mapa_source_connections')?array_fill_keys(DB::table('mapa_source_connections')->where('company_uuid',$company)
+            ->whereIn('dataset',['drivers','ambulances'])->whereIn('native_uuid',array_merge($ids,$drivers->flatten()->pluck('uuid')->all()))->pluck('native_uuid')->all(),true):[];
         $phoneStates=Schema::hasTable('mapa_mobile_driver_states')?DB::table('mapa_mobile_driver_states')->where('company_uuid',$company)
             ->whereIn('driver_uuid',$drivers->flatten()->pluck('uuid')->all())->get()->keyBy('driver_uuid'):collect();
         $positions=Schema::hasTable('mapa_vehicle_position_states')?DB::table('mapa_vehicle_position_states')->where('company_uuid',$company)->whereIn('vehicle_uuid',$ids)->get()->keyBy('vehicle_uuid'):collect();
@@ -101,6 +103,9 @@ final class CommandDeskService
             $valid=is_numeric($latitude)&&is_numeric($longitude)&&is_finite((float)$latitude)&&is_finite((float)$longitude)&&abs((float)$latitude)<=90&&abs((float)$longitude)<=180
                 &&$recorded!==null&&in_array($position->source??null,['crew_phone','hardware_gps'],true);
             $age=$valid?(int)(($now-$recorded)/1000):null;$meta=CommandDeskPolicy::meta($v->meta??null);
+            $driverMeta=CommandDeskPolicy::meta($driver->meta??null);
+            $sourceImported=isset($meta['asr_import'])||isset($meta['asr_source_id'])||isset($meta['mapa_source_id'])||isset($sourceIds[$v->uuid])
+                ||isset($driverMeta['asr_import'])||isset($driverMeta['asr_source_id'])||isset($driverMeta['mapa_source_id'])||($driver&&isset($sourceIds[$driver->uuid]));
             $evidence=$valid&&($position->source??null)==='hardware_gps'?$hardware->get($v->uuid):null;
             if($evidence&&($evidence->vehicle_uuid!==$v->uuid||(int)$evidence->recorded_at!==$recorded))$evidence=null;
             $protocol=$evidence->source_protocol??null;
@@ -127,7 +132,9 @@ final class CommandDeskService
                 'accuracy_m'=>isset($evidence->accuracy_m)?(float)$evidence->accuracy_m:null,
                 'provider_received_at'=>isset($evidence->provider_received_at)?(int)$evidence->provider_received_at:null,
                 'crew_phone_location'=>$phoneFix,'ambulance_gps_location'=>$hardwareFix,
-                'source_owned'=>isset($meta['asr_import'])||isset($meta['asr_source_id'])||isset($meta['mapa_source_id'])];
+                'source_imported'=>$sourceImported,
+                'dispatch_authority'=>\App\MapaMobile\DispatchAuthority::mapaControls()?'mapa':($sourceImported?'asr':'mapa'),
+                'source_owned'=>!\App\MapaMobile\DispatchAuthority::mapaControls()&&$sourceImported];
         }
         return $out;
     }

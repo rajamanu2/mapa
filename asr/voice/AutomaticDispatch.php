@@ -40,6 +40,7 @@ class AutomaticDispatch extends VoiceService
         // Review holds the tenant lock. A stopped or exhausted run needs an explicit
         // operator retry; editing the call must never silently revive old offers.
         if(DB::table('mapa_dispatch_runs')->where('call_id',$call->id)->exists())return;
+        \App\MapaMobile\DispatchAuthority::assertNoResidualSourceWork($staff['company']);
         $reason=\App\MapaMobile\SourceDispatchSaga::enabled()?'source_coordination_enabled':
             (!$this->workerFresh($staff['company'])?'worker_stale':null);
         DB::table('mapa_dispatch_runs')->insert(['call_id'=>$call->id,'company_uuid'=>$staff['company'],
@@ -78,6 +79,7 @@ class AutomaticDispatch extends VoiceService
             if($operation==='start'&&($call->state!=='ready'||!$call->review||!$this->workflowEnabled($call)))self::fail('Review the current call first.',409);
             $run=DB::table('mapa_dispatch_runs')->where('call_id',$id)->first();
             if($operation==='start'){
+                \App\MapaMobile\DispatchAuthority::assertNoResidualSourceWork($c['company']);
                 if($run&&!in_array($run->state,['stopped','needs_operator'],true))self::fail('Automatic dispatch is active or already accepted; refresh its status.',409);
                 if(DB::table('mapa_dispatch_offers')->where('call_id',$id)->count()>=AutomaticDispatchPolicy::MAX_OFFERS)
                     self::fail('Five crews have already been offered this call. Use manual dispatch or contact control.',409);
@@ -223,6 +225,7 @@ class AutomaticDispatch extends VoiceService
             $phoneLon=property_exists($d,'gps_longitude')?$d->gps_longitude:$d->longitude;
             $phone=['latitude'=>$phoneLat,'longitude'=>$phoneLon,'recorded_at'=>$candidate['fix_recorded_at']??null,'source'=>'crew_phone'];
             $position=['latitude'=>$phoneLat,'longitude'=>$phoneLon,'recorded_at'=>$candidate['fix_recorded_at']??null,
+                'source_trip_block'=>$this->sourceTripBlock($call->company_uuid,$d,$v),
                 'source'=>'driver_phone_gps','crew_phone_location'=>$phone,'ambulance_gps_location'=>null,
                 'source_owned'=>$this->sharedWithSource($d,$v),
                 'pending_offer'=>in_array($d->uuid,$attempted,true)||in_array($v->uuid,$attemptedVehicles,true)||$this->pendingOffer($call->company_uuid,$d->uuid,$v->uuid)];
@@ -313,6 +316,7 @@ class AutomaticDispatch extends VoiceService
             $operator=$this->operator($run);
             if(!$operator)self::fail('Dispatch authorization changed. Contact control.',409);
             if($body['response']==='accept'){
+                if($sourceTrip=$this->sourceTripBlock($c['company'],$c['driver'],$c['vehicle']))self::fail($sourceTrip['message'],409);
                 if($this->sharedWithSource($c['driver'],$c['vehicle']))self::fail('This ambulance is managed by ASR. Contact control.',409);
                 $request=Request::create('/','POST',[],[],[],['CONTENT_TYPE'=>'application/json'],json_encode(['confirmed'=>true,'driver_id'=>$c['driver']->public_id],JSON_THROW_ON_ERROR));
                 $result=$this->dispatch($request,$call,$operator);
@@ -333,6 +337,8 @@ class AutomaticDispatch extends VoiceService
         return ['company'=>$run->company_uuid,'user'=>$u,'binding'=>$b];
     }
     private function sharedWithSource(object $driver,object $vehicle): bool {
+        \App\MapaMobile\DispatchAuthority::assertNoResidualSourceWork($driver->company_uuid);
+        if(\App\MapaMobile\DispatchAuthority::mapaControls())return false;
         if(AutomaticDispatchPolicy::sourceOwned($driver->meta)||AutomaticDispatchPolicy::sourceOwned($vehicle->meta))return true;
         // Explicit linked projections may not carry import metadata on their native records.
         return Schema::hasTable('mapa_source_connections')&&DB::table('mapa_source_connections')->where('company_uuid',$driver->company_uuid)

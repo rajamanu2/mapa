@@ -9,7 +9,7 @@ use MapaSource\SourceSync;
 
 /** Durable ownership bridge. Remote ambiguity never deletes an intent or releases a resource. */
 class SourceDispatchSaga {
-    public static function enabled():bool{return (bool)config('mapa_mobile.source_dispatch_coordination_enabled',false);}
+    public static function enabled():bool{return !DispatchAuthority::mapaControls()&&(bool)config('mapa_mobile.source_dispatch_coordination_enabled',false);}
     public static function assertMappingChange(string $company,string $dataset,string $sourceId,?string $oldNativeUuid,?string $newNativeUuid):void {
         if(!self::enabled()||!in_array($dataset,['ambulances','drivers'],true))return;self::ready();
         $native=$dataset==='ambulances'?'vehicle_uuid':'driver_uuid';$source=$dataset==='ambulances'?'source_ambulance_id':'source_driver_id';

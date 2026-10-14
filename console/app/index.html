@@ -36,6 +36,7 @@
     {{content-for "head-footer"}}
       <link rel="stylesheet" href="{{rootURL}}mapa-text-flow.css?v=20261008">
       <link rel="stylesheet" href="{{rootURL}}mapa-dispatch-settings.css?v=20261012">
+      <link rel="stylesheet" href="{{rootURL}}mapa-feature-workspace.css?v=20261014">
 </head>
   <body>
     {{content-for "body"}}
@@ -54,6 +55,7 @@
     <script src="{{rootURL}}assets/vendor.js"></script>
     <!-- Register the supported native crew initializer after Ember's loader, before App boot. -->
     <script src="{{rootURL}}mapa-crew-native.js?v=20261005-nav-aligned"></script>
+    <script src="{{rootURL}}mapa-gps-device-layer.js?v=20261014-markers"></script>
     <script src="{{rootURL}}mapa-integration-editor.js?v=20261005-native-sidebar"></script>
     <script src="{{rootURL}}mapa-connection-view.js?v=20261006-source-v2"></script>
     <script src="{{rootURL}}mapa-integration-view.js?v=20261006-source-v2"></script>
@@ -62,6 +64,7 @@
     <script src="{{rootURL}}mapa-asr-board-native.js?v=20261009-asr-board"></script>
     <script src="{{rootURL}}mapa-text-flow.js?v=20261008"></script>
     <script src="{{rootURL}}mapa-dispatch-settings.js?v=20261012"></script>
+    <script src="{{rootURL}}mapa-feature-workspace.js?v=20261014"></script>
     <script src="{{rootURL}}assets/@fleetbase/console.js"></script>
 
     {{content-for "body-footer"}}

@@ -40,16 +40,17 @@ $expiredGrant=json_decode($launchService->launch(req([],$consoleBearer))->getCon
 $expiredKey='mapa:intake:launch:'.hash('sha256',$expiredGrant['ticket']);
 $expiredValue=Illuminate\Support\Facades\Cache::get($expiredKey);$expiredValue['expires']=time()-1;Illuminate\Support\Facades\Cache::put($expiredKey,$expiredValue,60);
 check($launchService->exchange(req(['ticket'=>$expiredGrant['ticket']]))->getStatusCode()===401,'expired launch cannot authenticate');
-$intakeId=(string)Str::uuid();$intakeForeign=(string)Str::uuid();$intakeDemo=(string)Str::uuid();
+$intakeId=(string)Str::uuid();$intakeForeign=(string)Str::uuid();$intakeDemo=(string)Str::uuid();$intakeSource=(string)Str::uuid();
 $intakeDraft=['caller_name'=>'DEMO caller label','pickup_address'=>'DEMO pickup address','callback_number'=>'+919000000008','reported_problem'=>'DEMO private clinical report','latitude'=>18.1,'longitude'=>82.6];
-$intakeBase=['company_uuid'=>$company,'revision'=>1,'state'=>'needs_review','demo'=>false,'draft'=>json_encode($intakeDraft),'created_at'=>now(),'updated_at'=>now()];
+$intakeBase=['company_uuid'=>$company,'provider'=>'manual','revision'=>1,'state'=>'needs_review','demo'=>false,'draft'=>json_encode($intakeDraft),'created_at'=>now(),'updated_at'=>now()];
 DB::table('mapa_voice_calls')->insert([
     [...$intakeBase,'id'=>$intakeId],[...$intakeBase,'id'=>$intakeForeign,'company_uuid'=>$foreign],
     [...$intakeBase,'id'=>$intakeDemo,'demo'=>true],
+    [...$intakeBase,'id'=>$intakeSource,'provider'=>'asrhealth'],
 ]);
 $intakeCounts=fn()=>array_map(fn($table)=>DB::table($table)->count(),['orders','mapa_mobile_sessions','mapa_voice_calls']);$intakeBefore=$intakeCounts();
 $intakeRows=$consoleService->intake(req([],$consoleBearer));
-check($intakeRows['company_id']===$company && count($intakeRows['calls'])===1 && $intakeRows['calls'][0]['id']===$intakeId && !$intakeRows['truncated'],'native intake is company scoped and hides disabled DEMO records');
+check($intakeRows['company_id']===$company && count($intakeRows['calls'])===1 && $intakeRows['calls'][0]['id']===$intakeId && !$intakeRows['truncated'],'native intake is company scoped and hides disabled DEMO records and historical source calls');
 $intakeRow=$intakeRows['calls'][0];
 check($intakeRow['caller_label']==='DEMO caller label' && $intakeRow['pickup_address']==='DEMO pickup address' && $intakeRow['order_id']===null && $intakeRow['state']==='needs_review','saved intake is visible without creating a native order');
 check(array_keys($intakeRow)===['id','revision','state','demo','caller_label','pickup_address','created_at','updated_at','order_id'],'intake projection excludes phone, medical report, GPS and full draft/review');
@@ -147,4 +148,4 @@ $consolePat->delete();
 denied(fn()=>$consoleService->identity(req([],$consoleBearer)),401);
 check($consoleController->index(req([],$consoleBearer))->getStatusCode()===401,'revoked native token denied on next request without cached identity');
 check($consoleController->intake(req([],$consoleBearer))->getStatusCode()===401,'revoked native token also denies intake on the next request');
-DB::table('mapa_voice_calls')->whereIn('id',[$intakeId,$intakeForeign,$intakeDemo])->delete();config($intakeConfig);
+DB::table('mapa_voice_calls')->whereIn('id',[$intakeId,$intakeForeign,$intakeDemo,$intakeSource])->delete();config($intakeConfig);

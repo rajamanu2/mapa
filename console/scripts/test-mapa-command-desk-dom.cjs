@@ -52,13 +52,14 @@ const desk={contract:'mapa-command-desk-v1',server_time:Date.now(),summary:{tota
 (async()=>{
 let root=qa.seed({calls:[call],desk});
 check(root.querySelectorAll('.mapa-command-grid').length===1,'one integrated command grid');
-check(root.querySelector('.mapa-command-header').textContent.includes('Integrated Ambulance Command Centre'),'uploaded reference command header replaces legacy desk chrome');
+check(root.querySelector('.mapa-command-header').textContent.includes('Call operations'),'native call operations header is present');
+check(walk(root.querySelector('.mapa-command-header')).some(node=>node.tagName==='BUTTON'&&node.getAttribute('aria-label')==='Close Call Intake'),'command header retains an accessible exit when outer chrome is hidden');
 check(root.querySelector('.mapa-command-tools').contains(root.querySelector('.mapa-voice-toolbar')),'legacy support actions moved into compact tools menu');
 check(!root.querySelector('.mapa-command-tools').open,'tools menu is closed by default');
 const grid=root.querySelector('.mapa-command-grid');check(grid.children.length===3,'queue, emergency and map/secondary operations are three sibling columns');
 check(grid.children[0].textContent.includes('Active Queue')&&grid.children[1].textContent.includes('Selected Emergency')&&grid.children[2].textContent.includes('Pickup & ambulance map'),'reference command column order');
 check(root.querySelector('.mapa-command-kpis').textContent.includes('9Total fleet'),'measured fleet counts displayed');
-check(root.querySelector('.mapa-command-kpis').textContent.includes('Select callEligible for selected call'),'eligibility requires a selected reviewed call');
+check(root.querySelector('.mapa-command-kpis').textContent.includes('Select callEligible crews'),'eligibility requires a selected reviewed call');
 const initialMap=root.querySelector('.mapa-voice-map'),initialHero=root.querySelector('.mapa-command-hero'),initialQueue=root.querySelector('.mapa-command-queue');
 qa.transport(async requestPath=>requestPath==='/command-desk'?{...desk,summary:{...desk.summary,total_fleet:10}}:{contract:'mapa-asr-caller-feed-v1',calls:[]});
 await qa.load();qa.refreshLive();await qa.refreshAsr(true);
@@ -91,7 +92,7 @@ qa.seed({calls:[call,{...call,id:'call_DEMO_routine',review:{...review,priority:
 const candidate={id:'driver_DEMO_rank',vehicle_id:'vehicle_DEMO_rank',vehicle_registration:'DEMO-ROAD',vehicle_name:'DEMO ambulance',vehicle_type:'BLS',name:'DEMO Driver',simulated:false,distance_km:3,fix_recorded_at:new Date().toISOString(),road_seconds:420,road_minutes:7,rank:1};
 const ranked={routing_status:'ready',ranked:[candidate]};
 qa.seed({selected:call,calls:[call],desk,candidates:[candidate],recommendations:ranked});
-check(document.body.querySelector('.mapa-command-kpis').textContent.includes('1Eligible for selected call'),'only the selected call shows measured eligible candidates');
+check(document.body.querySelector('.mapa-command-kpis').textContent.includes('1Eligible crews'),'only the selected call shows measured eligible candidates');
 check(document.body.querySelector('.mapa-command-recommendations').textContent.includes('7 min by road'),'road recommendation renders genuine server ETA');
 await btn('Choose this ambulance').click();const chooser=walk(document.body).find(n=>n.name==='ambulance_choice');check(chooser.value===candidate.vehicle_id,'recommendation selection binds existing manual chooser');check(btn('Confirm dispatch').disabled,'recommended selection still requires manual dispatch confirmation');
 qa.transport(async(path,options)=>options.body?{ok:true,call:{...call,revision:3}}:{call:{...call,revision:3},candidates:[candidate],unavailable:[],places:[],recommendations:ranked});

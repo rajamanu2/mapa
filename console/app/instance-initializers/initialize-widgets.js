@@ -17,7 +17,7 @@ export function initialize(appInstance) {
     widgetService.registerDashboard('dashboard');
     widgetService.registerDashboard('admin');
     widgetService.registerDashboardForSlot('console.home', 'dashboard', {
-        name: 'Default Dashboard',
+        name: 'MAPA Dashboard',
         extension: 'core',
         priority: 0,
     });

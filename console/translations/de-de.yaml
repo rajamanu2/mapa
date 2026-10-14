@@ -1,5 +1,5 @@
 app:
-  name: Fleetbase
+  name: MAPA
 
 common:
   new: Neu
@@ -628,7 +628,7 @@ auth:
     success-message: Your email address has been updated.
     invalid-verification-code: This email change link is invalid or expired.
     title: Confirm email change
-    message-text: Confirm this change to update the login email for your Fleetbase account.
+    message-text: Confirm this change to update the login email for your MAPA account.
     form:
       code:
         label: Confirmation code

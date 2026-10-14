@@ -1,5 +1,6 @@
 <?php
 namespace App\MapaMobile;
+require_once __DIR__.'/DispatchAuthority.php';
 use Closure;
 use Illuminate\Http\Request;
 
@@ -8,7 +9,7 @@ class SourceNativeWriteGuard
 {
     public function handle(Request $request,Closure $next)
     {
-        if(!config('mapa_mobile.source_dispatch_coordination_enabled',false)
+        if(DispatchAuthority::mapaControls()||!config('mapa_mobile.source_dispatch_coordination_enabled',false)
             ||in_array($request->method(),['GET','HEAD','OPTIONS'],true)
             ||!preg_match('~^(?:api/)?(?:int/)?v1/(?:orders|drivers|vehicles|fleets)(?:/|$)~D',ltrim(rawurldecode($request->path()),'/')))return $next($request);
         return response()->json(['error'=>'Use the reviewed call or ASR integration workflow for this fleet change.'],409)

@@ -17,6 +17,7 @@ final class RecommendationService
             $position=$resource($candidate);$reason=null;
             if(!$position)$reason=['resource_missing','Ambulance or driver record is unavailable.'];
             elseif($position['source_owned']??false)$reason=['source_owned','ASR manages this ambulance; MAPA shows its trip and caller tracking only.'];
+            elseif($position['source_trip_block']??null)$reason=[$position['source_trip_block']['code'],$position['source_trip_block']['message']];
             elseif($position['pending_offer']??false)$reason=['offered','An offer is already awaiting this crew’s response.'];
             elseif($position['location_conflict']??false)$reason=['crew_vehicle_apart','Crew phone and ambulance GPS are more than 500 m apart. Control must verify the assignment before dispatch.'];
             elseif(!Policy::coordinates($position['latitude']??null,$position['longitude']??null))$reason=['gps_missing','No valid current driver location.'];
