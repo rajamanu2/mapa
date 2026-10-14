@@ -178,6 +178,11 @@ qaCheck((json_decode(DB::table('mapa_voice_calls')->where('id',$pilot['id'])->va
 $pilotPlace=qaRow('places',['company_uuid'=>$company,'name'=>'DEMO QA live receiving hospital',
     'location'=>$point,'latitude'=>18.083,'longitude'=>82.669,'meta'=>json_encode(['mapa_demo'=>false,'isolated_test'=>true])]);
 $pilotDestination=DB::table('places')->where('uuid',$pilotPlace)->value('public_id');
+// The settings migration makes the database authoritative for commissioning.
+// Model a healthy enabled worker in this disposable tenant before checking the
+// separate exact-call pilot scope; an empty settings table must stay disabled.
+DB::table('mapa_dispatch_settings')->insert(['company_uuid'=>$company,'enabled'=>true,
+    'mode'=>'all_live','revision'=>1,'last_tick_at'=>now(),'created_at'=>now(),'updated_at'=>now()]);
 $pilotReview=['action_id'=>(string)Illuminate\Support\Str::uuid(),'expected_revision'=>$pilot['revision'],
     'confirmed'=>true,'supervised_pilot'=>true,'pilot_pickup_confirmed_by_operator'=>true,
     'coordinates_confirmed'=>false,'caller_name'=>'MAPA PILOT — NO PATIENT','callback_number'=>'',
