@@ -105,6 +105,7 @@ final class SourceConnections
                 if(!self::validNative($dataset,$record,$context['company']))MobileService::fail('Native identity is not eligible in this organization.',422);
                 if(DB::table('mapa_source_connections')->where(['company_uuid'=>$context['company'],'dataset'=>$dataset,'native_uuid'=>$record->uuid,'active'=>true])->where('source_id','!=',$body['source_id'])->exists())MobileService::fail('Native identity already has a source connection.',409);
             }elseif(!$existing||!$existing->active)MobileService::fail('There is no active connection to unlink.',409);
+            DispatchAuthority::assertNoResidualSourceWork($context['company']);
             if(config('mapa_mobile.source_dispatch_coordination_enabled',false))SourceDispatchSaga::assertMappingChange($context['company'],$dataset,$body['source_id'],$existing?->native_uuid,$record?->uuid);
             $revision=($existing?(int)$existing->revision:0)+1;$generation=self::generation($state);$fingerprint=$source?self::fingerprint($source):null;
             DB::table('mapa_source_connections')->updateOrInsert($key,['native_uuid'=>$record?->uuid,'active'=>!$unlink,'reviewed_by'=>$context['user']->uuid,

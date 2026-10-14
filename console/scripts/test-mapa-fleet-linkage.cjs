@@ -30,7 +30,7 @@ const unlinked = crewMapping({ ...directory, crew_link_status: 'unlinked' });
 check(!unlinked.verifiedBase && unlinked.summary.includes('no assigned driver returned'), 'Unlinked status overrides leftover driver identity');
 check(crewMapping({ vehicle_id: 'vehicle_DEMO_1', registration: 'DEMO-001' }).summary.includes('no assigned driver returned'), 'A GPS-only ambulance does not gain a fabricated crew');
 check(crewMapping({ vehicle_id: 'vehicle_DEMO_1', driver_id: 'driver_DEMO_1', driver_name: null, name: 'DEMO Ambulance', registration: 'DEMO-001' }).summary.startsWith('Driver: driver_DEMO_1 →'), 'A desk row with missing driver name falls back to driver ID, never the ambulance name');
-check(crewMapping({ ...directory, source_owned: true }).notes.some(note => note.includes('tracking only; dispatch remains on ASR Health')), 'Source-owned fleet clearly retains ASR dispatch ownership');
+check(crewMapping({ ...directory, source_owned: true }).notes.some(note => note.includes('MAPA dispatch authority not enabled')), 'Legacy source-owned fleet does not imply MAPA dispatch authority');
 
 const position = Object.freeze({
     vehicle_id: 'vehicle_DEMO_1', driver_id: 'driver_DEMO_1', driver_name: 'DEMO Crew', registration: 'DEMO-001',
@@ -50,11 +50,19 @@ check(crewMapping(withCurrentCrewMapping({ ...position, driver_id: null }, [{ ..
 const staleFacts = withCurrentCrewMapping({ ...position, ...directory }, []);
 check(!crewMapping(staleFacts).verifiedBase && !Object.hasOwn(staleFacts, 'hospital_name'), 'A map position cannot retain an old verified base when no current directory supports it');
 check(withCurrentCrewMapping(position, [{ ...directory, source_owned: true }]).source_owned === true, 'Exact source ownership accompanies mapped positions');
-check(withCurrentCrewMapping({ ...position, source_owned: true }, [directory]).source_owned === true, 'A native directory row cannot erase known source ownership');
+check(withCurrentCrewMapping({ ...position, source_owned: true }, [directory]).source_owned === false, 'Current exact vehicle directory replaces stale source ownership');
 for (const [status, driverId] of [['unlinked', null], ['ambiguous', null], ['linked', 'driver_DEMO_reassigned']]) {
     const mapped = withCurrentCrewMapping({ ...position, source_owned: false }, [{ ...directory, source_owned: true, driver_id: driverId, crew_link_status: status }]);
-    check(mapped.source_owned === true && crewMapping(mapped).notes.some(note => note.includes('tracking only; dispatch remains on ASR Health')) && !crewMapping(mapped).verifiedBase, `Source ownership stays visible for ${status === 'linked' ? 'reassigned' : status} crew without creating a verified base link`);
+    check(mapped.source_owned === true && crewMapping(mapped).notes.some(note => note.includes('MAPA dispatch authority not enabled')) && !crewMapping(mapped).verifiedBase, `Source ownership stays visible for ${status === 'linked' ? 'reassigned' : status} crew without creating a verified base link`);
 }
 check(withCurrentCrewMapping({ ...position, source_owned: false }, [{ ...directory, vehicle_id: 'vehicle_DEMO_other', source_owned: true }]).source_owned === false, 'Another vehicle cannot transfer its source ownership');
 check(crewMapping({ ...directory, name: '<img src=x onerror=alert(1)>' }).summary.includes('<img src=x onerror=alert(1)>'), 'Record labels remain text for the existing textContent renderer and DOM tooltips');
+
+
+const cutover = withCurrentCrewMapping({ ...position, source_owned: true }, [{ ...directory, source_imported: true, source_owned: false, dispatch_authority: 'mapa' }]);
+check(cutover.source_owned === false && cutover.dispatch_authority === 'mapa', 'Current MAPA authority replaces old source ownership');
+check(crewMapping(cutover).notes.some(note => note.includes('MAPA dispatch · ASR data feed')) && !crewMapping(cutover).notes.some(note => note.includes('not enabled')), 'ASR provenance is distinct from MAPA authority');
+check(!withCurrentCrewMapping({ ...position, dispatch_authority: 'mapa' }, []).dispatch_authority, 'Missing directory does not retain stale authority');
+check(!withCurrentCrewMapping(position, [{ ...directory, dispatch_authority: 'mapa' }, directory]).dispatch_authority, 'Duplicate directory cannot grant authority');
+check(!crewMapping({ ...directory, dispatch_authority: 'mapa', crew_mobile_bound: false }).verifiedBase, 'MAPA authority never bypasses disconnected phone readiness');
 console.log(`MAPA fleet linkage: ${checks} checks passed.`);

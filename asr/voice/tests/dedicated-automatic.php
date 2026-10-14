@@ -134,6 +134,20 @@ $engine->control(qaRequest($tokens['admin'],qaAction()),$declined,'stop');
 $metas=DB::table('drivers')->pluck('meta','uuid')->all();foreach($metas as $driver=>$meta)DB::table('drivers')->where('uuid',$driver)->update(['meta'=>json_encode([...json_decode($meta,true),'asr_import'=>['source_id'=>'DEMO']])]);
 qaFresh();$shared=qaCall($company,$destination);$engine->control(qaRequest($tokens['admin'],qaAction()),$shared,'start');
 qaCheck(DB::table('mapa_dispatch_offers')->where('call_id',$shared)->count()===0,'Real native ASR-shared drivers never receive automatic offers');
+config(['mapa_mobile.dispatch_authority'=>'mapa']);
+DB::table('drivers')->update(['online'=>0]);
+$offDutyCutover=qaCall($company,$destination);$engine->control(qaRequest($tokens['admin'],qaAction()),$offDutyCutover,'start');
+qaCheck(qaOffer($offDutyCutover)===null,'MAPA ownership alone never makes an imported off-duty crew available');
+DB::table('drivers')->update(['online'=>1]);
+DB::table('mapa_mobile_driver_states')->update(['recorded_at'=>1]);
+$staleCutover=qaCall($company,$destination);$engine->control(qaRequest($tokens['admin'],qaAction()),$staleCutover,'start');
+qaCheck(qaOffer($staleCutover)===null,'MAPA ownership keeps stale phone GPS ineligible');
+qaFresh();$mapaCutover=qaCall($company,$destination);$engine->control(qaRequest($tokens['admin'],qaAction()),$mapaCutover,'start');
+qaCheck(qaOffer($mapaCutover)!==null,'Imported linked native crew becomes available after duty starts and phone GPS is fresh');
+qaCheck(DB::table('drivers')->where('meta','like','%asr_import%')->count()===count($metas),'MAPA native offers retain imported driver provenance');
+$engine->control(qaRequest($tokens['admin'],qaAction()),$mapaCutover,'stop');
+qaDeny(fn()=>$engine->control(qaRequest($tokens['admin'],qaAction()),qaCall($company,$destination,'asrhealth'),'start'),409,'MAPA cutover never dispatches an ASR historical call mirror');
+config(['mapa_mobile.dispatch_authority'=>'asr']);
 foreach($metas as $driver=>$meta)DB::table('drivers')->where('uuid',$driver)->update(['meta'=>$meta]);
 qaFresh();$resumeAction=qaAction();$engine->control(qaRequest($tokens['admin'],$resumeAction),$shared,'start');
 qaCheck(qaOffer($shared)!==null,'Explicit native retry resumes resource-exhausted run after new eligibility');
@@ -212,4 +226,3 @@ qaDeny(fn()=>$engine->mutate(qaRequest($tokens['admin'],[...qaAction(),
 qaCheck(Illuminate\Support\Facades\Http::recorded()->count()===0,'No external routing or source writes');
 qaCheck(Illuminate\Support\Facades\Queue::pushedJobs()===[],'No queued real notifications');
 echo json_encode(['ok'=>true,'checks'=>count($qaChecks),'cases'=>$qaChecks,'database'=>'fresh_disposable_native_mysql','authentication'=>'real_native_mobile','order_creation'=>'real_native_models_and_references','concurrency'=>'independent_forked_mysql_connections','road_adapter'=>'deterministic_fixture; private routing separately tested','production_rows_written'=>0,'notifications_sent'=>0],JSON_PRETTY_PRINT).PHP_EOL;
-

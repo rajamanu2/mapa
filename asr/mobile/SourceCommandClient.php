@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace App\MapaMobile;
+require_once __DIR__.'/DispatchAuthority.php';
 require_once __DIR__.'/SourceCommands.php';
 use MapaSource\SourceCommands;
 use MapaSource\SourceSync;
@@ -28,6 +29,7 @@ class SourceCommandClient
     }
     private function configuration():array
     {
+        if (DispatchAuthority::mapaControls()) throw new SourceCommandUnavailable('ASR is a read-only data source; MAPA controls dispatch.');
         $path=realpath($this->configPath);
         if(!$path || preg_match('~/(public|public_html|public-console)(/|$)~i',str_replace('\\','/',$path))
             || !is_file($path) || filesize($path)>16384) throw new SourceCommandUnavailable('Source editing is not configured.');

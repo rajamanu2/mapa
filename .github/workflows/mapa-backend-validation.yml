@@ -35,10 +35,12 @@ jobs:
         run: |
           set -euo pipefail
           autoload="$GITHUB_WORKSPACE/api/vendor/autoload.php"
+          php8.2 asr/mobile/tests/dispatch-authority.php
+          php8.2 asr/voice/tests/source-dispatch-boundary.php "$autoload"
+          php8.2 asr/voice/tests/command-desk.php "$autoload"
           php8.2 asr/mobile/tests/provider-gps-map.php "$autoload"
           php8.2 asr/voice/tests/automatic-dispatch.php "$autoload"
           php8.2 asr/voice/tests/supervised-pilot-policy.php "$autoload"
           php8.2 asr/voice/tests/automatic-dispatch-scope.php
       - name: Validation boundary
         run: echo 'Isolated in-memory SQLite and policy validation only. No production credentials, database, notifications or deployment. Native MySQL concurrency, phone delivery and live acceptance require separate verification.' >> "$GITHUB_STEP_SUMMARY"
-

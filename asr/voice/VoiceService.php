@@ -437,6 +437,9 @@ class VoiceService
         $company=$call->company_uuid;$demo=(bool)$call->demo;
         $blocked=static fn($code,$message,$extra=[])=>['candidate'=>null,'code'=>$code,'message'=>$message,...$extra];
         if(!Policy::allowedResource($demo,$d->meta??null,$v->meta??null))return $blocked('environment','Ambulance and call must use the same DEMO or live environment.');
+        try{\App\MapaMobile\DispatchAuthority::assertNoResidualSourceWork($company);}
+        catch(\Symfony\Component\HttpKernel\Exception\HttpException $e){return $blocked('source_reconciliation_required',$e->getMessage());}
+        if(!\App\MapaMobile\DispatchAuthority::mapaControls()){
         foreach([$d,$v] as $resource){
             $sourceMeta=Policy::meta($resource->meta??null);
             if(isset($sourceMeta['asr_import'])||isset($sourceMeta['asr_source_id'])||isset($sourceMeta['mapa_source_id']))
@@ -445,6 +448,7 @@ class VoiceService
         if(Schema::hasTable('mapa_source_connections')&&DB::table('mapa_source_connections')->where('company_uuid',$company)
             ->whereIn('native_uuid',[$d->uuid,$v->uuid])->whereIn('dataset',['drivers','ambulances'])->exists())
             return $blocked('source_owned','ASR manages this ambulance and driver. Dispatch remains on ASR Health.');
+        }
         // Native Vehicle normalizes active to available; retained raw legacy rows may still be active.
         if(!$d->online||!$v->online||!in_array($d->status,['available','active'],true)||!in_array($v->status,['available','active'],true))return $blocked('off_duty','Crew and ambulance must be on duty and active.');
         if((($v->driver_uuid??null)&&$v->driver_uuid!==$d->uuid)||$this->native('drivers',$company)->where('vehicle_uuid',$v->uuid)->where('uuid','<>',$d->uuid)->exists())return $blocked('assignment','Correct the crew-to-ambulance link in Resources.');

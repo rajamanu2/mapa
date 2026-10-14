@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace App\MapaMobile;
+require_once __DIR__.'/DispatchAuthority.php';
 if(!class_exists(\MapaSource\SourceDispatchCommands::class,false))require_once __DIR__.'/SourceDispatchCommands.php';
 use MapaSource\SourceDispatchCommands as D;
 use MapaSource\SourceSync;
@@ -17,6 +18,7 @@ class SourceDispatchClient {
     public function __construct(private readonly string $configPath){}
     public function configured():bool {try{$this->configuration();return true;}catch(\Throwable $e){return false;}}
     private function configuration():array {
+        if (DispatchAuthority::mapaControls()) throw new SourceDispatchUnavailable('ASR is a read-only data source; MAPA controls dispatch.');
         $path=realpath($this->configPath);
         if(!$path||!is_file($path)||filesize($path)>16384||preg_match('~/(public|public_html|public-console)(/|$)~i',str_replace('\\','/',$path)))throw new SourceDispatchUnavailable('Source dispatch is not configured.');
         try{$c=json_decode(file_get_contents($path),true,16,JSON_THROW_ON_ERROR);}catch(\Throwable $e){throw new SourceDispatchUnavailable('Source dispatch is not configured.');}

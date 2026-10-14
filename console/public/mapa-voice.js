@@ -236,7 +236,8 @@
         if (!verifiedBase && recordedBase) notes.push('Recorded base: ' + recordedBase + ' (not a verified crew link)');
         if (row.crew_mobile_bound === false) notes.push('Crew phone not connected');
         if (row.mapping_notice) notes.push(string(row.mapping_notice));
-        if (row.source_owned === true) notes.push('ASR-managed · tracking only; dispatch remains on ASR Health');
+        if (row.dispatch_authority === 'mapa') notes.push('MAPA dispatch' + (row.source_imported === true ? ' · ASR data feed' : '') + ' · crew readiness checked for each call');
+        else if (row.source_owned === true) notes.push('ASR source record · MAPA dispatch authority not enabled');
         return { summary: 'Driver: ' + driver + ' → Ambulance: ' + ambulance + ' → ' + base, notes, verifiedBase: !!verifiedBase };
     }
     /** Add directory facts only for one exact current driver/vehicle pair; never replace GPS evidence. */
@@ -247,6 +248,13 @@
         const vehicleRows = Array.isArray(directory) ? directory.filter(item => item && safeId(row.vehicle_id) && item.vehicle_id === row.vehicle_id) : [];
         // Source ownership belongs to the vehicle even when its crew assignment needs review.
         if (vehicleRows.some(item => item.source_owned === true)) row.source_owned = true;
+        // Authority is a current server decision, independent of ASR data provenance.
+        delete row.dispatch_authority;
+        if (vehicleRows.length === 1) {
+            if (['mapa', 'asr'].includes(vehicleRows[0].dispatch_authority)) row.dispatch_authority = vehicleRows[0].dispatch_authority;
+            if (typeof vehicleRows[0].source_owned === 'boolean') row.source_owned = vehicleRows[0].source_owned;
+            if (typeof vehicleRows[0].source_imported === 'boolean') row.source_imported = vehicleRows[0].source_imported;
+        }
         const matches = vehicleRows.filter(item => safeId(row.driver_id) && item.driver_id === row.driver_id);
         if (vehicleRows.length === 1 && matches.length === 1) {
             for (const key of fields) if (Object.hasOwn(matches[0], key)) row[key] = matches[0][key];
@@ -721,7 +729,7 @@
             target.append(row);
         };
         for(const call of recentSource)appendSourceRow(source,call);
-        if(olderSource.length){const older=el('details','mapa-command-older-source');older.open=olderOpen||!!asrSelected&&olderSource.some(call=>call.id===asrSelected.id);older.append(el('summary','','Older unresolved ASR records · '+olderSource.length));older.append(el('p','mapa-voice-warning','These incidents have no source update in the last 24 hours. Confirm their actual status in ASR Health before acting.'));for(const call of olderSource)appendSourceRow(older,call);source.append(older);}
+        if(olderSource.length){const older=el('details','mapa-command-older-source');older.open=olderOpen||!!asrSelected&&olderSource.some(call=>call.id===asrSelected.id);older.append(el('summary','','Older unresolved ASR records · '+olderSource.length));older.append(el('p','mapa-voice-warning','These incidents have no source update in the last 24 hours. Confirm their actual status and check existing MAPA assignments before acting.'));for(const call of olderSource)appendSourceRow(older,call);source.append(older);}
         if (!calls.length&&!asrCalls.length) source.append(el('p', 'mapa-voice-muted', 'No operational calls have been received. Use NEW CALL to record an incoming call.'));
         if(sourceOnly){list.scrollTop=scrollTop;return;}
         list.append(el('h4','mapa-command-queue-heading','MAPA calls'));
@@ -844,7 +852,7 @@
             panel.replaceChildren();
             if(deskError)panel.append(el('p','mapa-voice-warning',deskError+(deskLoadedAt?' Last successful refresh: '+date(deskLoadedAt):'')));
             else if(deskLoadedAt)panel.append(el('p','mapa-voice-note','Latest server data · '+date(deskSnapshot.server_time||deskLoadedAt)));
-            if(deskSnapshot?.window?.days)panel.append(el('p','mapa-voice-note','Reporting window: last '+deskSnapshot.window.days+' days. MAPA evidence; ASR dispatch remains independent.'));
+            if(deskSnapshot?.window?.days)panel.append(el('p','mapa-voice-note','Reporting window: last '+deskSnapshot.window.days+' days. '+(deskSnapshot.dispatch_authority==='mapa'?'MAPA controls dispatch; ASR supplies data. Crew readiness is checked for each call.':'MAPA trip evidence. Source history is shown separately.')));
             if(Object.values(deskSnapshot?.truncated||{}).some(value=>value===true))panel.append(el('p','mapa-voice-warning','This bounded desk shows a partial dataset. Counts and history may be incomplete; review individual records.'));
             if(secondaryTab==='fleet'){
                 let rows=ambulanceDirectory(selected||{},candidates,unavailable,'',false);
@@ -883,7 +891,7 @@
                     const open=button('Open call & resolve',()=>loadCall(row.call_id));open.disabled=!!pending;card.append(open);panel.append(card);
                 }
                 for(const row of deskSnapshot?.trip_monitoring||[]){const card=el('article','mapa-command-row');card.append(el('strong','',row.vehicle_registration||row.call_id||'Trip'),el('p','mapa-voice-note',[row.stage,row.driver_name,...(Array.isArray(row.alerts)?row.alerts.map(alert=>typeof alert==='string'?alert:alert.message):[])].filter(Boolean).join(' · ')));panel.append(card);}
-                if(deskSnapshot&&!deskSnapshot.trip_monitoring.length&&!deskSnapshot.dispatch_exceptions?.length)panel.append(el('p','mapa-voice-note','No monitored active MAPA trips or dispatch exceptions. ASR trips remain managed on ASR Health.'));
+                if(deskSnapshot&&!deskSnapshot.trip_monitoring.length&&!deskSnapshot.dispatch_exceptions?.length)panel.append(el('p','mapa-voice-note','No monitored active MAPA trips or dispatch exceptions. Historical source records do not create MAPA assignments.'));
             }else{
                 panel.append(el('h4','','Dispatch Activity'));
                 if(deskSnapshot?.metrics?.offers_available===true){
@@ -1963,7 +1971,7 @@
         removeHandoverMap = () => map.remove();
     }
     function renderCall(parent) {
-        if(selected?.source==='asrhealth'){const draft=selected.review||selected.draft||{};parent.append(el('h3','',`${draft.source_context?.incident_number||'ASR incident'} · Caller tracking`),el('p','',`${draft.caller_name||'Caller'} · ${draft.callback_number||'Number not recorded'}`),el('p','',draft.pickup_address||'Pickup awaiting caller GPS'),el('p','mapa-voice-note','Dispatch remains owned by asrhealth.in. Caller GPS requires the caller to open the link and grant location permission.'));renderConnectedCall(parent,selected);return;}
+        if(selected?.source==='asrhealth'){const draft=selected.review||selected.draft||{};parent.append(el('h3','',`${draft.source_context?.incident_number||'ASR incident'} · Caller tracking`),el('p','',`${draft.caller_name||'Caller'} · ${draft.callback_number||'Number not recorded'}`),el('p','',draft.pickup_address||'Pickup awaiting caller GPS'),el('p','mapa-voice-note','Historical ASR call · tracking only. For a new response, create a reviewed MAPA call after checking for an existing assignment. Caller GPS requires the caller to open the link and grant location permission.'));renderConnectedCall(parent,selected);return;}
 
         const call = selected,pilot=isSupervisedPilot(call); const progress = el('ol', 'mapa-command-pipeline mapa-voice-progress'); renderDispatchPipeline(progress, call, dirty); parent.append(progress); const heading = el('div', 'mapa-voice-heading'); heading.append(el('h3', '', string((call.review || call.draft || {}).caller_name) || string(call.caller) || 'Unknown caller'), badge(string(call.state).replaceAll('_', ' ')));
         if (call.demo === true) heading.append(badge('DEMO · TRAINING', 'is-demo'));if(pilot)heading.append(badge('SUPERVISED PILOT · NO PATIENT','is-warning')); parent.append(heading);
@@ -2091,7 +2099,7 @@
         const automatic = call.automatic_dispatch;
         if (autoOffersAvailable || automatic) {
             const box = el('section', 'mapa-voice-confirm mapa-command-cascade');
-            box.append(el('h4', '', automatic?.cascade_active===true?'⚡ AUTOMATIC DISPATCH ACTIVE':'⚡ Automatic dispatch'), el('p', 'mapa-voice-note', isSupervisedPilot(call)?'SUPERVISED PILOT · NO PATIENT. MAPA checks the operator-verified test point within 500 m, then expands by 1 km bands. Only the approved, online crew phones are in scope.':'MAPA checks the confirmed pickup within 500 m, then expands by 1 km bands. Only verified, available crews with fresh GPS are offered a native MAPA call. ASR-managed trips remain on ASR Health.'));
+            box.append(el('h4', '', automatic?.cascade_active===true?'⚡ AUTOMATIC DISPATCH ACTIVE':'⚡ Automatic dispatch'), el('p', 'mapa-voice-note', isSupervisedPilot(call)?'SUPERVISED PILOT · NO PATIENT. MAPA checks the operator-verified test point within 500 m, then expands by 1 km bands. Only the approved, online crew phones are in scope.':'MAPA checks the confirmed pickup within 500 m, then expands by 1 km bands. Only crews under MAPA dispatch control with verified links, availability and fresh phone GPS receive offers. ASR data alone does not establish readiness.'));
             if (!autoOffersAvailable) box.append(el('p', 'mapa-voice-warning', automaticOffersUnavailableMessage(call)));
             if (automatic) {
                 if(automatic.first_acceptance_wins===true&&automatic.state==='offering'&&automatic.outstanding_count>0)box.append(el('strong','mapa-command-cascade-policy','FIRST ACCEPTANCE WINS ASSIGNMENT'),el('p','mapa-voice-note','Outstanding crews may still accept. The first valid acceptance assigns this trip and releases the other offers.'));
@@ -2272,7 +2280,7 @@
     }
     function renderAsrCall(parent) {
         const back=button('← Back to Incoming Calls',()=>{if(busy||pending)return;asrSelected=null;selected=null;newCall=false;activeView='calls';render();});back.disabled=!!busy||!!pending;parent.append(back);
-        const row=asrSelected;parent.append(el('h3','',row.incident_number+' · ASR Health call'),el('p','mapa-voice-note','Entered in asrhealth.in. This view does not create a second ambulance dispatch.'));
+        const row=asrSelected;parent.append(el('h3','',row.incident_number+' · ASR Health call'),el('p','mapa-voice-note','ASR source history · tracking only. This view does not create a MAPA assignment. For a new response, use New Call and review the current incident and any existing assignment.'));
         const details=el('dl','mapa-voice-source-details');
         for(const [label,key] of [['Caller','caller_name'],['Caller number','caller_phone'],['Patient','patient_name'],['Age','patient_age'],['Gender','patient_gender'],['Incident','incident_type'],['Priority','priority'],['Pickup','pickup_address'],['Origin PHC','from_phc_id'],['Origin secretariat','from_secretariat_id'],['Origin village','from_village_id'],['Destination PHC','to_phc_id'],['Other destination','destination_facility'],['Notes','notes'],['Source status','status']]){details.append(el('dt','',label),el('dd','',row[key]==null||row[key]===''?'Not recorded':String(row[key])));}
         parent.append(details);
