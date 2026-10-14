@@ -126,7 +126,7 @@ try{(new NativeAutomaticFailureQa)->respondOffer(qaRequest($crew,$accept()),$fai
 foreach($counts as $table=>$count)qaCheck(DB::table($table)->count()===$count,'Failure rolls back '.$table);
 qaCheck(DB::table('mapa_dispatch_offers')->where('id',$failedOffer->id)->value('state')==='offered'&&DB::table('mapa_voice_calls')->where('id',$failed)->value('order_uuid')===null,'Failed acceptance keeps original offer and unassigned call');
 $engine->control(qaRequest($tokens['admin'],qaAction()),$failed,'stop');
-qaFresh();$declined=qaCall($company,$destination);$engine->control(qaRequest($tokens['admin'],qaAction()),$declined,'start');$declineOffer=qaOffer($declined);$crew=qaCrewToken($declineOffer);$decline=['action_id'=>(string)Illuminate\Support\Str::uuid(),'expected_revision'=>1,'response'=>'decline'];
+qaFresh();$declined=qaCall($company,$destination);$engine->control(qaRequest($tokens['admin'],qaAction()),$declined,'start');$declineOffer=qaOffer($declined);$crew=qaCrewToken($declineOffer);$decline=['action_id'=>(string)Illuminate\Support\Str::uuid(),'expected_revision'=>1,'response'=>'decline','decline_reason'=>'unavailable'];
 $engine->respondOffer(qaRequest($crew,$decline),$declineOffer->id);$replacement=qaOffer($declined);
 qaCheck($replacement&&$replacement->driver_uuid!==$declineOffer->driver_uuid,'Native decline offers next eligible crew');
 qaCheck(($engine->respondOffer(qaRequest($crew,$decline),$declineOffer->id)['replayed']??false)===true&&DB::table('mapa_dispatch_offers')->where('call_id',$declined)->count()===2,'Native decline retry does not duplicate replacement offers');
@@ -207,3 +207,4 @@ qaDeny(fn()=>$engine->mutate(qaRequest($tokens['admin'],[...qaAction(),
 qaCheck(Illuminate\Support\Facades\Http::recorded()->count()===0,'No external routing or source writes');
 qaCheck(Illuminate\Support\Facades\Queue::pushedJobs()===[],'No queued real notifications');
 echo json_encode(['ok'=>true,'checks'=>count($qaChecks),'cases'=>$qaChecks,'database'=>'fresh_disposable_native_mysql','authentication'=>'real_native_mobile','order_creation'=>'real_native_models_and_references','concurrency'=>'independent_forked_mysql_connections','road_adapter'=>'deterministic_fixture; private routing separately tested','production_rows_written'=>0,'notifications_sent'=>0],JSON_PRETTY_PRINT).PHP_EOL;
+
