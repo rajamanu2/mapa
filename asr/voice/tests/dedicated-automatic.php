@@ -181,7 +181,7 @@ $pilotDestination=DB::table('places')->where('uuid',$pilotPlace)->value('public_
 // The settings migration makes the database authoritative for commissioning.
 // Model a healthy enabled worker in this disposable tenant before checking the
 // separate exact-call pilot scope; an empty settings table must stay disabled.
-DB::table('mapa_dispatch_settings')->insert(['company_uuid'=>$company,'enabled'=>true,
+DB::table('mapa_dispatch_settings')->updateOrInsert(['company_uuid'=>$company],['enabled'=>true,
     'mode'=>'all_live','revision'=>1,'last_tick_at'=>now(),'created_at'=>now(),'updated_at'=>now()]);
 $pilotReview=['action_id'=>(string)Illuminate\Support\Str::uuid(),'expected_revision'=>$pilot['revision'],
     'confirmed'=>true,'supervised_pilot'=>true,'pilot_pickup_confirmed_by_operator'=>true,
