@@ -115,9 +115,10 @@ final class ProviderGpsSnapshotService
                 ->where('expires_at','>',gmdate('Y-m-d H:i:s',(int)($now/1000)))
                 ->select('vehicle_uuid')->selectRaw('MAX(expires_at) as offer_expires_at')->groupBy('vehicle_uuid')->get()->keyBy('vehicle_uuid');
             foreach($bindings as &$binding)if(isset($offers[$binding['vehicle_uuid']])){
-                $binding['offer_expires_at']=\Carbon\Carbon::parse($offers[$binding['vehicle_uuid']]->offer_expires_at,'UTC')->valueOf();
+                $binding['offer_expires_at']=(int)\Carbon\Carbon::parse($offers[$binding['vehicle_uuid']]->offer_expires_at,'UTC')->valueOf();
             }unset($binding);
         }
         return ProviderGpsSnapshotPolicy::view($snapshot,$company,$bindings,$now);
     }
 }
+
