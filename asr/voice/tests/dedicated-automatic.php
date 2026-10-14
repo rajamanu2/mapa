@@ -32,6 +32,8 @@ Illuminate\Support\Facades\Redis::swap(new class {
     public function get($key){if($key!=='countryData:IN')throw new RuntimeException('Unexpected QA Redis key');return json_encode(['iso2'=>'IN','name'=>['common'=>'India']]);}
 });
 class NativeAutomaticQa extends App\MapaVoice\AutomaticDispatch {
+    // Deterministic source evidence; source-trip-eligibility.php covers stale/open source rows separately.
+    protected function sourceTripBlock(string $company,object $driver,object $vehicle): ?array {return null;}
     // Road adapter is separately tested; this suite verifies real native DB/auth/order atomicity.
     // Historical multi-call cases exercise the engine independently of the
     // single-call production pilot. The pilot intake case below uses the real

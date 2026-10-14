@@ -36,6 +36,8 @@ jobs:
           set -euo pipefail
           autoload="$GITHUB_WORKSPACE/api/vendor/autoload.php"
           php8.2 asr/mobile/tests/dispatch-authority.php
+          php8.2 asr/voice/tests/source-trip-eligibility.php
+          php8.2 asr/voice/tests/source-trip-identities.php "$autoload"
           php8.2 asr/voice/tests/source-dispatch-boundary.php "$autoload"
           php8.2 asr/voice/tests/command-desk.php "$autoload"
           php8.2 asr/mobile/tests/provider-gps-map.php "$autoload"

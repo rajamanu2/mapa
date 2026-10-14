@@ -3,7 +3,7 @@
 
 // Isolated checks of the shipped display rules. No API, credentials or fleet changes.
 const assert = require('node:assert/strict');
-const { crewMapping, withCurrentCrewMapping } = require('../public/mapa-voice.js');
+const { crewMapping, withCurrentCrewMapping, sourceTripBlocker, eligible, ambulanceDirectory } = require('../public/mapa-voice.js');
 let checks = 0;
 const check = (condition, message) => { assert.ok(condition, message); checks++; };
 const directory = Object.freeze({
@@ -65,4 +65,18 @@ check(crewMapping(cutover).notes.some(note => note.includes('MAPA dispatch · AS
 check(!withCurrentCrewMapping({ ...position, dispatch_authority: 'mapa' }, []).dispatch_authority, 'Missing directory does not retain stale authority');
 check(!withCurrentCrewMapping(position, [{ ...directory, dispatch_authority: 'mapa' }, directory]).dispatch_authority, 'Duplicate directory cannot grant authority');
 check(!crewMapping({ ...directory, dispatch_authority: 'mapa', crew_mobile_bound: false }).verifiedBase, 'MAPA authority never bypasses disconnected phone readiness');
+
+
+const call = { state: 'ready', review: {}, demo: true };
+for (const code of ['source_trip_unresolved', 'source_trip_unknown']) {
+    const candidate = { id: 'driver_DEMO_1', vehicle_id: 'vehicle_DEMO_1', simulated: true, code, crew_on_duty: true, crew_gps_status: 'fresh' };
+    check(sourceTripBlocker(candidate).includes('before MAPA dispatch'), 'Source trip gate remains explicit for ' + code);
+    check(eligible(call, [candidate]).length === 0, 'On-duty fresh GPS cannot override ' + code);
+    const rows = ambulanceDirectory(call, [candidate], []);
+    check(rows.length === 1 && rows[0].ready === false && rows[0].message, 'Blocked candidate remains visible and unavailable for ' + code);
+    check(ambulanceDirectory(call, [candidate], [], '', true).length === 0, 'Ready-only filter excludes ' + code);
+}
+check(sourceTripBlocker({ reason_code: 'source_trip_unknown' }).includes('unverified'), 'Ranking reason is rendered');
+check(sourceTripBlocker({ dispatch_blocker: 'source_trip_unresolved' }).includes('still open'), 'Desk blocker is rendered');
+check(sourceTripBlocker({}) === '', 'Absent source trip evidence does not invent a blocker');
 console.log(`MAPA fleet linkage: ${checks} checks passed.`);

@@ -433,6 +433,9 @@ class VoiceService
     protected function busy(string $company,string $driver,string $vehicle): bool {
         return $this->blockingOrder($company,$driver,$vehicle)!==null;
     }
+    protected function sourceTripBlock(string $company,object $driver,object $vehicle): ?array {
+        return (new SourceTripEligibility)->inspect($company,$driver,$vehicle);
+    }
     protected function inspectEligibility(object $d,object $v,object $call,array $review): array {
         $company=$call->company_uuid;$demo=(bool)$call->demo;
         $blocked=static fn($code,$message,$extra=[])=>['candidate'=>null,'code'=>$code,'message'=>$message,...$extra];
@@ -457,6 +460,7 @@ class VoiceService
         if(!$binding||!$user||!$this->native('company_users',$company)->where('user_uuid',$d->user_uuid)->where('status','active')->exists())return $blocked('crew_access','An active crew account and mobile binding are required.');
         if(!(new CrewEligibility)->allows($binding,$user))return $blocked('crew_access','Crew account needs an administrator to check mobile access.');
         if($order=$this->blockingOrder($company,$d->uuid,$v->uuid))return $blocked('busy','Already assigned to an unfinished call. Finish or cancel that call in Ambulance Calls before assigning another.',['order_id'=>$order->public_id,'order_status'=>$order->status]);
+        if($sourceTrip=$this->sourceTripBlock($company,$d,$v))return $blocked($sourceTrip['code'],$sourceTrip['message']);
         if(Schema::hasTable('mapa_dispatch_offers')){
             $pending=DB::table('mapa_dispatch_offers')->where('company_uuid',$company)->whereIn('state',['offered','overdue'])->where('call_id','<>',$call->id)->where(fn($q)=>$q->where('driver_uuid',$d->uuid)->orWhere('vehicle_uuid',$v->uuid));
             if(DB::transactionLevel()>0)$pending->lockForUpdate();

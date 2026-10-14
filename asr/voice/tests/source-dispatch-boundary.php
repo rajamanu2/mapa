@@ -31,4 +31,3 @@ $check($service->inspect($d,$v,$call)['code']==='off_duty','Import provenance is
 config(['mapa_mobile.dispatch_authority'=>'invalid']);
 $check($service->inspect($d,$v,$call)['code']==='source_owned','Unknown authority fails closed to legacy source ownership');$checks++;
 echo $checks.' source dispatch ownership boundary checks passed; isolated SQLite, zero production writes.'.PHP_EOL;
-

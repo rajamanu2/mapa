@@ -69,6 +69,8 @@ function row(string $table,array $values=[]):string{
 }
 function voiceRequest(array $body=[],?string $token=null):Request{return Request::create('/test','POST',[],[],[],['CONTENT_TYPE'=>'application/json',...($token?['HTTP_AUTHORIZATION'=>'Bearer '.$token]:[])],json_encode($body));}
 class IsolatedVoice extends VoiceService{
+    // Native eligibility fixture has no external source receiver; policy has its own isolated suite.
+    protected function sourceTripBlock(string $company,object $driver,object $vehicle): ?array {return null;}
     public array $assignmentAlerts=[];
     protected function company():string{return config('mapa.company_uuid');}
     protected function notifyCrewAssigned(\Fleetbase\FleetOps\Models\Order $native):void{

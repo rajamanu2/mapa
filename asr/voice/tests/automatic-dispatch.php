@@ -41,6 +41,8 @@ foreach(['companies','users','company_users','drivers','vehicles','mapa_mobile_b
     $t->integer('revision')->default(1);$t->boolean('enabled')->default(1);$t->boolean('demo')->default(0);$t->float('latitude')->default(18);$t->float('longitude')->default(82);$t->timestamp('deleted_at')->nullable();$t->timestamps();
 });
 class Engine extends AutomaticDispatch {
+    // Source snapshot safety is exercised by source-trip-eligibility.php; engine fixtures have no source receiver.
+    protected function sourceTripBlock(string $company,object $driver,object $vehicle): ?array {return null;}
     // Exercise the historical engine cases independently of the single-call pilot.
     // The real pilot boundary has separate, unoverridden tests below.
     public static function available(): bool {return config('mapa_voice.enabled')&&config('mapa_voice.automatic_dispatch_enabled')

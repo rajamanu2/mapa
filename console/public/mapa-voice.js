@@ -206,7 +206,13 @@
     }
     function eligible(call, candidates) {
         if (!call || call.state !== 'ready' || !call.review || typeof call.demo !== 'boolean' || !Array.isArray(candidates)) return [];
-        return candidates.filter(candidate => candidate && safeId(candidate.id) && safeId(candidate.vehicle_id) && candidate.simulated === call.demo);
+        return candidates.filter(candidate => candidate && safeId(candidate.id) && safeId(candidate.vehicle_id) && candidate.simulated === call.demo && !sourceTripBlocker(candidate));
+    }
+    function sourceTripBlocker(row = {}) {
+        const code = row.code || row.reason_code || row.dispatch_blocker;
+        if (code === 'source_trip_unresolved') return 'Source trip still open · reconcile the existing trip before MAPA dispatch';
+        if (code === 'source_trip_unknown') return 'Source trip status unverified · refresh or reconcile source data before MAPA dispatch';
+        return '';
     }
     function ambulanceSearchText(value) {
         return string(value).normalize('NFKD').replace(/\p{M}/gu, '').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
@@ -266,6 +272,7 @@
     }
     function ambulanceAvailabilityEvidence(row) {
         const facts=[];
+        const blocker=sourceTripBlocker(row);if(blocker)facts.push(blocker);
         if(row.vehicle_online===true)facts.push('Vehicle marked online');
         else if(row.vehicle_online===false)facts.push('Vehicle marked offline');
         if(row.crew_link_status==='linked')facts.push('Crew linked');
@@ -282,6 +289,9 @@
         if (!call || call.state !== 'ready' || !call.review || typeof call.demo !== 'boolean') return [];
         const rows = new Map();
         for (const row of eligible(call, candidates)) rows.set(row.vehicle_id, { ...row, ready: true });
+        for (const row of Array.isArray(candidates) ? candidates : []) {
+            if (row && safeId(row.vehicle_id) && row.simulated === call.demo && sourceTripBlocker(row)) rows.set(row.vehicle_id, { ...row, ready: false, message: sourceTripBlocker(row) });
+        }
         for (const row of Array.isArray(unavailable) ? unavailable : []) {
             if (row && safeId(row.vehicle_id) && row.simulated === call.demo) rows.set(row.vehicle_id, { ...row, ready: false });
         }
@@ -481,6 +491,7 @@
     const pure = { dispatchPipeline, destinationPage, notifyIntakeUpdated, confirmedCallerPickup, compareCallerPickup, pickupConfirmationIntent, pickupConfirmationReceipt, smsSaveAllowed, smsStatusText, callerPickup, ambulanceDirectory, ambulanceContext, reviewDraft, manualDraft, eligible, dispatchAllowed, makeIntent, failureWarning, intakeNotice, pickupCandidate, travelPoints, ASR_BOUNDS, inAsrDispatchMap, showDispatchPosition, locationQuery, googleSearchUrl, pastedPickupPoint, googlePlaceCandidate, callSteps, validRequestPath, enrollmentRows, crewApprovalDraft, crewIntent, tripReportRows, privateMediaPath, enrollmentReceipt, crewResourceDraft, crewResourceReceipt, sourceCallRecent, gpsCoverage };
     pure.gpsQuality = gpsQuality;
     pure.crewMapping = crewMapping;
+    pure.sourceTripBlocker = sourceTripBlocker;
     pure.enrollmentLinkSummary = enrollmentLinkSummary;
     pure.withCurrentCrewMapping = withCurrentCrewMapping;
     if (typeof document === 'undefined') { if (typeof module === 'object' && module.exports) module.exports = pure; return; }
@@ -860,7 +871,7 @@
                 panel.append(el('h4','','Ambulance Fleet'));
                 if(!rows.length)panel.append(el('p','mapa-voice-note','Select a reviewed call to see eligible ambulances and availability reasons.'));
                 for(const row of rows.slice(0,200)){
-                    const evidence=deskSnapshot?.fleet?.find(vehicle=>vehicle.vehicle_id===row.vehicle_id)||row,card=el('article','mapa-command-row');card.append(el('strong','',row.vehicle_registration||row.vehicle_name||row.vehicle_id),badge(row.ready===true?'Eligible':row.ready===false?'Unavailable':'Eligibility not checked',row.ready===false?'is-error':''),el('p','mapa-voice-note',[evidence.driver_name||row.name,evidence.driver_phone,ambulanceContext(row),row.message].filter(Boolean).join(' · ')));
+                    const evidence=deskSnapshot?.fleet?.find(vehicle=>vehicle.vehicle_id===row.vehicle_id)||row,blocker=sourceTripBlocker(row)||sourceTripBlocker(evidence),card=el('article','mapa-command-row');card.append(el('strong','',row.vehicle_registration||row.vehicle_name||row.vehicle_id),badge(blocker?'Trip review needed':row.ready===true?'Eligible':row.ready===false?'Unavailable':'Eligibility not checked',blocker||row.ready===false?'is-error':''),el('p','mapa-voice-note',[evidence.driver_name||row.name,evidence.driver_phone,ambulanceContext(row),blocker||row.message].filter(Boolean).join(' · ')));
                     appendCrewMapping(card, withCurrentCrewMapping(evidence, [row]));
                     const gps=evidence.gps_source==='hardware_gps'?'Ambulance device GPS':evidence.gps_source==='crew_phone'?'Assigned driver phone GPS':'GPS source not recorded';
                     card.append(el('p','mapa-voice-note','Capability: '+string(evidence.capability||row.vehicle_type||'Not recorded')+' · Status: '+string(evidence.status||'Not recorded')));

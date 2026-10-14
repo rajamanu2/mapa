@@ -225,6 +225,7 @@ class AutomaticDispatch extends VoiceService
             $phoneLon=property_exists($d,'gps_longitude')?$d->gps_longitude:$d->longitude;
             $phone=['latitude'=>$phoneLat,'longitude'=>$phoneLon,'recorded_at'=>$candidate['fix_recorded_at']??null,'source'=>'crew_phone'];
             $position=['latitude'=>$phoneLat,'longitude'=>$phoneLon,'recorded_at'=>$candidate['fix_recorded_at']??null,
+                'source_trip_block'=>$this->sourceTripBlock($call->company_uuid,$d,$v),
                 'source'=>'driver_phone_gps','crew_phone_location'=>$phone,'ambulance_gps_location'=>null,
                 'source_owned'=>$this->sharedWithSource($d,$v),
                 'pending_offer'=>in_array($d->uuid,$attempted,true)||in_array($v->uuid,$attemptedVehicles,true)||$this->pendingOffer($call->company_uuid,$d->uuid,$v->uuid)];
@@ -315,6 +316,7 @@ class AutomaticDispatch extends VoiceService
             $operator=$this->operator($run);
             if(!$operator)self::fail('Dispatch authorization changed. Contact control.',409);
             if($body['response']==='accept'){
+                if($sourceTrip=$this->sourceTripBlock($c['company'],$c['driver'],$c['vehicle']))self::fail($sourceTrip['message'],409);
                 if($this->sharedWithSource($c['driver'],$c['vehicle']))self::fail('This ambulance is managed by ASR. Contact control.',409);
                 $request=Request::create('/','POST',[],[],[],['CONTENT_TYPE'=>'application/json'],json_encode(['confirmed'=>true,'driver_id'=>$c['driver']->public_id],JSON_THROW_ON_ERROR));
                 $result=$this->dispatch($request,$call,$operator);
