@@ -34,6 +34,7 @@
 .mapa-voice-dialog summary { cursor:pointer; }
 .mapa-voice-dialog a { color:var(--intake-blue-text); }
 .mapa-voice-dialog.is-standalone { width:100%; height:100dvh; max-width:none; max-height:none; border:0; border-radius:0; box-shadow:none; }
+.mapa-voice-dialog.is-standalone { margin:0; min-height:0; min-width:0; max-width:100%; }
 .mapa-voice-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 20px; border-bottom:1px solid var(--intake-border); background:var(--intake-surface); flex:none; }
 .mapa-voice-eyebrow { font-size:11px; font-weight:600; color:var(--intake-muted); letter-spacing:.04em; }
 .mapa-voice-status { padding:10px 20px; color:var(--intake-success); background:var(--intake-success-bg); border-bottom:1px solid var(--intake-success-border); flex:none; }
@@ -380,4 +381,27 @@
 }
 @media (prefers-reduced-motion:reduce) {
     .mapa-voice-dialog *, .mapa-voice-dialog *::before, .mapa-voice-dialog *::after { scroll-behavior:auto!important; }
+}
+
+/* The desk fills its iframe, not the outer browser. Long forms scroll within it. */
+.mapa-voice-dialog.is-command-desk .mapa-voice-content { min-width:0; }
+.mapa-command-header-controls { min-width:0; flex-wrap:wrap; }
+.mapa-command-header-controls .mapa-command-freshness { overflow-wrap:anywhere; }
+.mapa-command-grid.mapa-voice-layout { grid-template-rows:minmax(0,1fr); }
+.mapa-command-grid :is(.mapa-command-panel-head,.mapa-command-secondary-tabs) { position:sticky; top:0; z-index:5; background:var(--intake-bg); }
+.mapa-command-grid .mapa-intake-submit-actions { position:sticky; bottom:0; z-index:5; padding:10px 0; background:var(--intake-bg); border-top:1px solid var(--intake-border); }
+@media (max-width:959px) {
+    .mapa-command-grid.mapa-voice-layout { grid-template-rows:auto; }
+    .mapa-command-grid .mapa-intake-submit-actions { position:static; }
+    .mapa-command-queue.mapa-voice-list { max-height:140px; }
+    .mapa-command-grid :is(.mapa-command-panel-head,.mapa-command-secondary-tabs) { position:static; }
+    .mapa-command-header-controls { max-width:60%; }
+    .mapa-command-kpi { min-height:36px; padding:6px 8px; }
+}
+@media (max-width:767px) {
+    .mapa-command-grid.mapa-voice-layout { display:flex; flex-direction:column; }
+    .mapa-command-queue.mapa-voice-list,.mapa-command-hero.mapa-voice-detail,.mapa-command-secondary { width:100%; }
+    .mapa-command-header { flex-wrap:wrap; }
+    .mapa-command-header-controls { max-width:100%; }
+    .mapa-command-map-panel .mapa-voice-map { height:220px; min-height:180px; }
 }
