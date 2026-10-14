@@ -2,10 +2,10 @@
 // Isolated eligibility boundary: no application .env, messages, native models or production DB.
 require $argv[1];
 $app=new Illuminate\Container\Container;Illuminate\Container\Container::setInstance($app);
+$app->instance('config',new Illuminate\Config\Repository([]));
 Illuminate\Support\Facades\Facade::setFacadeApplication($app);
 $db=new Illuminate\Database\Capsule\Manager($app);$db->addConnection(['driver'=>'sqlite','database'=>':memory:']);$db->setAsGlobal();$db->bootEloquent();
 $app->instance('db',$db->getDatabaseManager());$app->bind('db.schema',fn()=>$db->getConnection()->getSchemaBuilder());
-$app->instance('config',new Illuminate\Config\Repository([]));
 require __DIR__.'/../../mobile/DispatchAuthority.php';
 require __DIR__.'/../Policy.php';require __DIR__.'/../VoiceService.php';
 class SourceBoundary extends App\MapaVoice\VoiceService {public function inspect($d,$v,$call){return $this->inspectEligibility($d,$v,$call,['vehicle_requirement'=>'any']);}}
@@ -31,3 +31,4 @@ $check($service->inspect($d,$v,$call)['code']==='off_duty','Import provenance is
 config(['mapa_mobile.dispatch_authority'=>'invalid']);
 $check($service->inspect($d,$v,$call)['code']==='source_owned','Unknown authority fails closed to legacy source ownership');$checks++;
 echo $checks.' source dispatch ownership boundary checks passed; isolated SQLite, zero production writes.'.PHP_EOL;
+
