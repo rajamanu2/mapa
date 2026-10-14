@@ -17,6 +17,12 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962
+        with:
+          php-version: '8.2'
+          extensions: pdo_sqlite, mbstring, dom, xml, zip, gd, bcmath
+          tools: composer:2
+          coverage: none
       - name: Install locked dependencies without application bootstrap
         shell: bash
         run: |
