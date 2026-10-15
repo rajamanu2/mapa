@@ -1,0 +1,43 @@
+name: Publish MAPA Android APK
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: mapa-production-static
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Verify reviewed APK
+        run: echo '1e586f62efe6a5efe93255bb406904556c6b9a16fef8e4f8485e996186be2079  releases/android/MAPA-Crew-1.14.5-Firebase.apk' | sha256sum --check
+      - name: Publish APK and verify public hash
+        env:
+          DEPLOY_KEY: ${{ secrets.MAPA_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.MAPA_KNOWN_HOSTS }}
+          DEPLOY_USER: ${{ vars.MAPA_DEPLOY_USER }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY" && test -n "$KNOWN_HOSTS"
+          [[ "$DEPLOY_USER" == mapa-deploy ]]
+          umask 077
+          mkdir -p "$RUNNER_TEMP/mapa-ssh"
+          key="$RUNNER_TEMP/mapa-ssh/key"
+          hosts="$RUNNER_TEMP/mapa-ssh/known_hosts"
+          trap 'rm -f "$key" "$hosts"' EXIT
+          printf '%s\n' "$DEPLOY_KEY" > "$key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$hosts"
+          opts=(-i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$hosts" -o ConnectTimeout=15)
+          target="$DEPLOY_USER@148.135.136.242"
+          release="android-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          ssh "${opts[@]}" "$target" "mkdir -m 700 -p releases/$release"
+          scp "${opts[@]}" releases/android/MAPA-Crew-1.14.5-Firebase.apk deploy/android/publish-apk.py "$target:releases/$release/"
+          ssh "${opts[@]}" "$target" "flock -n .mapa-settings-deploy.lock python3 releases/$release/publish-apk.py"
